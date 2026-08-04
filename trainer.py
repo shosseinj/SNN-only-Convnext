@@ -36,7 +36,7 @@ def parser():
     p.add_argument("--threshold_min", type=float, default=0.05)
     p.add_argument("--threshold_max", type=float, default=0.8)
     p.add_argument("--threshold_freeze_epochs", type=int, default=3)
-    p.add_argument("--readout_mode", choices=["ttfs", "membrane", "hybrid", "soft_time"], default="ttfs")
+    p.add_argument("--readout_mode", choices=["ttfs", "membrane", "hybrid", "soft_time"], default="hybrid")
     p.add_argument("--soft_time_beta", type=float, default=10.0)
     p.add_argument("--learnable_delay", type=str2bool, default=True)
     p.add_argument("--residual", type=str2bool, default=True)
