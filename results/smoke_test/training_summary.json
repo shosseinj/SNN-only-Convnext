@@ -1,0 +1,22 @@
+{
+  "experiment_name": "smoke_test",
+  "status": "completed",
+  "dataset": "FakeData",
+  "temporal_model_type": "DISCRETE_TIME_TTFS_SNN",
+  "time_steps": 5,
+  "seed": 42,
+  "residual_fusion": "earliest_spike_or",
+  "learnable_delay": true,
+  "force_positive_weights": true,
+  "best_epoch": 0,
+  "best_validation_accuracy": 0.0,
+  "test_accuracy": 0.0,
+  "test_loss": 2.0228970050811768,
+  "spikes_per_sample": 9220.0,
+  "synops_per_sample_estimate": 3147840.0,
+  "trainable_parameters": 593804,
+  "total_parameters": 596910,
+  "model_size_mb": 2.2770309448242188,
+  "training_time_seconds": 0.31467747688293457,
+  "checkpoint": "results/smoke_test/best_checkpoint.pth"
+}

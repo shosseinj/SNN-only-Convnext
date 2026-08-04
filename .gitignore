@@ -1,0 +1,7 @@
+*.pth
+*.pyc
+*.pdf
+*.png
+cifar_data/*
+
+

@@ -1,0 +1,2622 @@
+{
+  "status": "loaded",
+  "source": "torchvision.ConvNeXt_Tiny_Weights.IMAGENET1K_V1",
+  "architecture": {
+    "depths": [
+      3,
+      3,
+      9,
+      3
+    ],
+    "dims": [
+      96,
+      192,
+      384,
+      768
+    ]
+  },
+  "positive_weight_transform": "abs",
+  "loaded_tensor_count": 116,
+  "loaded_parameter_count": 27797184,
+  "loaded": [
+    {
+      "source": "features.0.0.weight",
+      "target": "downsamples.0.synapse.weight",
+      "shape": [
+        96,
+        3,
+        4,
+        4
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.0.0.bias",
+      "target": "downsamples.0.synapse.bias",
+      "shape": [
+        96
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.2.1.weight",
+      "target": "downsamples.1.synapse.weight",
+      "shape": [
+        192,
+        96,
+        2,
+        2
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.2.1.bias",
+      "target": "downsamples.1.synapse.bias",
+      "shape": [
+        192
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.4.1.weight",
+      "target": "downsamples.2.synapse.weight",
+      "shape": [
+        384,
+        192,
+        2,
+        2
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.4.1.bias",
+      "target": "downsamples.2.synapse.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.6.1.weight",
+      "target": "downsamples.3.synapse.weight",
+      "shape": [
+        768,
+        384,
+        2,
+        2
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.6.1.bias",
+      "target": "downsamples.3.synapse.bias",
+      "shape": [
+        768
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.1.0.block.0.weight",
+      "target": "stages.0.0.dw.weight",
+      "shape": [
+        96,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.1.0.block.0.bias",
+      "target": "stages.0.0.dw.bias",
+      "shape": [
+        96
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.1.0.block.3.weight",
+      "target": "stages.0.0.pw1.weight",
+      "shape": [
+        384,
+        96,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.1.0.block.3.bias",
+      "target": "stages.0.0.pw1.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.1.0.block.5.weight",
+      "target": "stages.0.0.pw2.weight",
+      "shape": [
+        96,
+        384,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.1.0.block.5.bias",
+      "target": "stages.0.0.pw2.bias",
+      "shape": [
+        96
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.1.1.block.0.weight",
+      "target": "stages.0.1.dw.weight",
+      "shape": [
+        96,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.1.1.block.0.bias",
+      "target": "stages.0.1.dw.bias",
+      "shape": [
+        96
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.1.1.block.3.weight",
+      "target": "stages.0.1.pw1.weight",
+      "shape": [
+        384,
+        96,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.1.1.block.3.bias",
+      "target": "stages.0.1.pw1.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.1.1.block.5.weight",
+      "target": "stages.0.1.pw2.weight",
+      "shape": [
+        96,
+        384,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.1.1.block.5.bias",
+      "target": "stages.0.1.pw2.bias",
+      "shape": [
+        96
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.1.2.block.0.weight",
+      "target": "stages.0.2.dw.weight",
+      "shape": [
+        96,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.1.2.block.0.bias",
+      "target": "stages.0.2.dw.bias",
+      "shape": [
+        96
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.1.2.block.3.weight",
+      "target": "stages.0.2.pw1.weight",
+      "shape": [
+        384,
+        96,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.1.2.block.3.bias",
+      "target": "stages.0.2.pw1.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.1.2.block.5.weight",
+      "target": "stages.0.2.pw2.weight",
+      "shape": [
+        96,
+        384,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.1.2.block.5.bias",
+      "target": "stages.0.2.pw2.bias",
+      "shape": [
+        96
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.3.0.block.0.weight",
+      "target": "stages.1.0.dw.weight",
+      "shape": [
+        192,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.3.0.block.0.bias",
+      "target": "stages.1.0.dw.bias",
+      "shape": [
+        192
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.3.0.block.3.weight",
+      "target": "stages.1.0.pw1.weight",
+      "shape": [
+        768,
+        192,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.3.0.block.3.bias",
+      "target": "stages.1.0.pw1.bias",
+      "shape": [
+        768
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.3.0.block.5.weight",
+      "target": "stages.1.0.pw2.weight",
+      "shape": [
+        192,
+        768,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.3.0.block.5.bias",
+      "target": "stages.1.0.pw2.bias",
+      "shape": [
+        192
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.3.1.block.0.weight",
+      "target": "stages.1.1.dw.weight",
+      "shape": [
+        192,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.3.1.block.0.bias",
+      "target": "stages.1.1.dw.bias",
+      "shape": [
+        192
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.3.1.block.3.weight",
+      "target": "stages.1.1.pw1.weight",
+      "shape": [
+        768,
+        192,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.3.1.block.3.bias",
+      "target": "stages.1.1.pw1.bias",
+      "shape": [
+        768
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.3.1.block.5.weight",
+      "target": "stages.1.1.pw2.weight",
+      "shape": [
+        192,
+        768,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.3.1.block.5.bias",
+      "target": "stages.1.1.pw2.bias",
+      "shape": [
+        192
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.3.2.block.0.weight",
+      "target": "stages.1.2.dw.weight",
+      "shape": [
+        192,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.3.2.block.0.bias",
+      "target": "stages.1.2.dw.bias",
+      "shape": [
+        192
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.3.2.block.3.weight",
+      "target": "stages.1.2.pw1.weight",
+      "shape": [
+        768,
+        192,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.3.2.block.3.bias",
+      "target": "stages.1.2.pw1.bias",
+      "shape": [
+        768
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.3.2.block.5.weight",
+      "target": "stages.1.2.pw2.weight",
+      "shape": [
+        192,
+        768,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.3.2.block.5.bias",
+      "target": "stages.1.2.pw2.bias",
+      "shape": [
+        192
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.0.block.0.weight",
+      "target": "stages.2.0.dw.weight",
+      "shape": [
+        384,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.0.block.0.bias",
+      "target": "stages.2.0.dw.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.0.block.3.weight",
+      "target": "stages.2.0.pw1.weight",
+      "shape": [
+        1536,
+        384,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.0.block.3.bias",
+      "target": "stages.2.0.pw1.bias",
+      "shape": [
+        1536
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.0.block.5.weight",
+      "target": "stages.2.0.pw2.weight",
+      "shape": [
+        384,
+        1536,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.0.block.5.bias",
+      "target": "stages.2.0.pw2.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.1.block.0.weight",
+      "target": "stages.2.1.dw.weight",
+      "shape": [
+        384,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.1.block.0.bias",
+      "target": "stages.2.1.dw.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.1.block.3.weight",
+      "target": "stages.2.1.pw1.weight",
+      "shape": [
+        1536,
+        384,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.1.block.3.bias",
+      "target": "stages.2.1.pw1.bias",
+      "shape": [
+        1536
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.1.block.5.weight",
+      "target": "stages.2.1.pw2.weight",
+      "shape": [
+        384,
+        1536,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.1.block.5.bias",
+      "target": "stages.2.1.pw2.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.2.block.0.weight",
+      "target": "stages.2.2.dw.weight",
+      "shape": [
+        384,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.2.block.0.bias",
+      "target": "stages.2.2.dw.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.2.block.3.weight",
+      "target": "stages.2.2.pw1.weight",
+      "shape": [
+        1536,
+        384,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.2.block.3.bias",
+      "target": "stages.2.2.pw1.bias",
+      "shape": [
+        1536
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.2.block.5.weight",
+      "target": "stages.2.2.pw2.weight",
+      "shape": [
+        384,
+        1536,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.2.block.5.bias",
+      "target": "stages.2.2.pw2.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.3.block.0.weight",
+      "target": "stages.2.3.dw.weight",
+      "shape": [
+        384,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.3.block.0.bias",
+      "target": "stages.2.3.dw.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.3.block.3.weight",
+      "target": "stages.2.3.pw1.weight",
+      "shape": [
+        1536,
+        384,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.3.block.3.bias",
+      "target": "stages.2.3.pw1.bias",
+      "shape": [
+        1536
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.3.block.5.weight",
+      "target": "stages.2.3.pw2.weight",
+      "shape": [
+        384,
+        1536,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.3.block.5.bias",
+      "target": "stages.2.3.pw2.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.4.block.0.weight",
+      "target": "stages.2.4.dw.weight",
+      "shape": [
+        384,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.4.block.0.bias",
+      "target": "stages.2.4.dw.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.4.block.3.weight",
+      "target": "stages.2.4.pw1.weight",
+      "shape": [
+        1536,
+        384,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.4.block.3.bias",
+      "target": "stages.2.4.pw1.bias",
+      "shape": [
+        1536
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.4.block.5.weight",
+      "target": "stages.2.4.pw2.weight",
+      "shape": [
+        384,
+        1536,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.4.block.5.bias",
+      "target": "stages.2.4.pw2.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.5.block.0.weight",
+      "target": "stages.2.5.dw.weight",
+      "shape": [
+        384,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.5.block.0.bias",
+      "target": "stages.2.5.dw.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.5.block.3.weight",
+      "target": "stages.2.5.pw1.weight",
+      "shape": [
+        1536,
+        384,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.5.block.3.bias",
+      "target": "stages.2.5.pw1.bias",
+      "shape": [
+        1536
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.5.block.5.weight",
+      "target": "stages.2.5.pw2.weight",
+      "shape": [
+        384,
+        1536,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.5.block.5.bias",
+      "target": "stages.2.5.pw2.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.6.block.0.weight",
+      "target": "stages.2.6.dw.weight",
+      "shape": [
+        384,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.6.block.0.bias",
+      "target": "stages.2.6.dw.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.6.block.3.weight",
+      "target": "stages.2.6.pw1.weight",
+      "shape": [
+        1536,
+        384,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.6.block.3.bias",
+      "target": "stages.2.6.pw1.bias",
+      "shape": [
+        1536
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.6.block.5.weight",
+      "target": "stages.2.6.pw2.weight",
+      "shape": [
+        384,
+        1536,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.6.block.5.bias",
+      "target": "stages.2.6.pw2.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.7.block.0.weight",
+      "target": "stages.2.7.dw.weight",
+      "shape": [
+        384,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.7.block.0.bias",
+      "target": "stages.2.7.dw.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.7.block.3.weight",
+      "target": "stages.2.7.pw1.weight",
+      "shape": [
+        1536,
+        384,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.7.block.3.bias",
+      "target": "stages.2.7.pw1.bias",
+      "shape": [
+        1536
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.7.block.5.weight",
+      "target": "stages.2.7.pw2.weight",
+      "shape": [
+        384,
+        1536,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.7.block.5.bias",
+      "target": "stages.2.7.pw2.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.8.block.0.weight",
+      "target": "stages.2.8.dw.weight",
+      "shape": [
+        384,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.8.block.0.bias",
+      "target": "stages.2.8.dw.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.8.block.3.weight",
+      "target": "stages.2.8.pw1.weight",
+      "shape": [
+        1536,
+        384,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.8.block.3.bias",
+      "target": "stages.2.8.pw1.bias",
+      "shape": [
+        1536
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.5.8.block.5.weight",
+      "target": "stages.2.8.pw2.weight",
+      "shape": [
+        384,
+        1536,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.5.8.block.5.bias",
+      "target": "stages.2.8.pw2.bias",
+      "shape": [
+        384
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.7.0.block.0.weight",
+      "target": "stages.3.0.dw.weight",
+      "shape": [
+        768,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.7.0.block.0.bias",
+      "target": "stages.3.0.dw.bias",
+      "shape": [
+        768
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.7.0.block.3.weight",
+      "target": "stages.3.0.pw1.weight",
+      "shape": [
+        3072,
+        768,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.7.0.block.3.bias",
+      "target": "stages.3.0.pw1.bias",
+      "shape": [
+        3072
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.7.0.block.5.weight",
+      "target": "stages.3.0.pw2.weight",
+      "shape": [
+        768,
+        3072,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.7.0.block.5.bias",
+      "target": "stages.3.0.pw2.bias",
+      "shape": [
+        768
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.7.1.block.0.weight",
+      "target": "stages.3.1.dw.weight",
+      "shape": [
+        768,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.7.1.block.0.bias",
+      "target": "stages.3.1.dw.bias",
+      "shape": [
+        768
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.7.1.block.3.weight",
+      "target": "stages.3.1.pw1.weight",
+      "shape": [
+        3072,
+        768,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.7.1.block.3.bias",
+      "target": "stages.3.1.pw1.bias",
+      "shape": [
+        3072
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.7.1.block.5.weight",
+      "target": "stages.3.1.pw2.weight",
+      "shape": [
+        768,
+        3072,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.7.1.block.5.bias",
+      "target": "stages.3.1.pw2.bias",
+      "shape": [
+        768
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.7.2.block.0.weight",
+      "target": "stages.3.2.dw.weight",
+      "shape": [
+        768,
+        1,
+        7,
+        7
+      ],
+      "transforms": [
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.7.2.block.0.bias",
+      "target": "stages.3.2.dw.bias",
+      "shape": [
+        768
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.7.2.block.3.weight",
+      "target": "stages.3.2.pw1.weight",
+      "shape": [
+        3072,
+        768,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.7.2.block.3.bias",
+      "target": "stages.3.2.pw1.bias",
+      "shape": [
+        3072
+      ],
+      "transforms": []
+    },
+    {
+      "source": "features.7.2.block.5.weight",
+      "target": "stages.3.2.pw2.weight",
+      "shape": [
+        768,
+        3072,
+        1,
+        1
+      ],
+      "transforms": [
+        "linear_to_conv1x1",
+        "absolute_value_for_non_negative_parameterization"
+      ]
+    },
+    {
+      "source": "features.7.2.block.5.bias",
+      "target": "stages.3.2.pw2.bias",
+      "shape": [
+        768
+      ],
+      "transforms": []
+    }
+  ],
+  "skipped_incompatible": [],
+  "skipped_source": [
+    {
+      "source": "features.0.1.weight",
+      "shape": [
+        96
+      ],
+      "reason": "no_justified_snn_mapping"
+    },
+    {
+      "source": "features.0.1.bias",
+      "shape": [
+        96
+      ],
+      "reason": "no_justified_snn_mapping"
+    },
+    {
+      "source": "features.1.0.layer_scale",
+      "shape": [
+        96,
+        1,
+        1
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.1.0.block.2.weight",
+      "shape": [
+        96
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.1.0.block.2.bias",
+      "shape": [
+        96
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.1.1.layer_scale",
+      "shape": [
+        96,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.1.1.block.2.weight",
+      "shape": [
+        96
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.1.1.block.2.bias",
+      "shape": [
+        96
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.1.2.layer_scale",
+      "shape": [
+        96,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.1.2.block.2.weight",
+      "shape": [
+        96
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.1.2.block.2.bias",
+      "shape": [
+        96
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.2.0.weight",
+      "shape": [
+        96
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.2.0.bias",
+      "shape": [
+        96
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.3.0.layer_scale",
+      "shape": [
+        192,
+        1,
+        1
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.3.0.block.2.weight",
+      "shape": [
+        192
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.3.0.block.2.bias",
+      "shape": [
+        192
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.3.1.layer_scale",
+      "shape": [
+        192,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.3.1.block.2.weight",
+      "shape": [
+        192
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.3.1.block.2.bias",
+      "shape": [
+        192
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.3.2.layer_scale",
+      "shape": [
+        192,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.3.2.block.2.weight",
+      "shape": [
+        192
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.3.2.block.2.bias",
+      "shape": [
+        192
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.4.0.weight",
+      "shape": [
+        192
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.4.0.bias",
+      "shape": [
+        192
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.0.layer_scale",
+      "shape": [
+        384,
+        1,
+        1
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.0.block.2.weight",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.0.block.2.bias",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.1.layer_scale",
+      "shape": [
+        384,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.5.1.block.2.weight",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.1.block.2.bias",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.2.layer_scale",
+      "shape": [
+        384,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.5.2.block.2.weight",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.2.block.2.bias",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.3.layer_scale",
+      "shape": [
+        384,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.5.3.block.2.weight",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.3.block.2.bias",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.4.layer_scale",
+      "shape": [
+        384,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.5.4.block.2.weight",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.4.block.2.bias",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.5.layer_scale",
+      "shape": [
+        384,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.5.5.block.2.weight",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.5.block.2.bias",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.6.layer_scale",
+      "shape": [
+        384,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.5.6.block.2.weight",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.6.block.2.bias",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.7.layer_scale",
+      "shape": [
+        384,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.5.7.block.2.weight",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.7.block.2.bias",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.8.layer_scale",
+      "shape": [
+        384,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.5.8.block.2.weight",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.5.8.block.2.bias",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.6.0.weight",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.6.0.bias",
+      "shape": [
+        384
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.7.0.layer_scale",
+      "shape": [
+        768,
+        1,
+        1
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.7.0.block.2.weight",
+      "shape": [
+        768
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.7.0.block.2.bias",
+      "shape": [
+        768
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.7.1.layer_scale",
+      "shape": [
+        768,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.7.1.block.2.weight",
+      "shape": [
+        768
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.7.1.block.2.bias",
+      "shape": [
+        768
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.7.2.layer_scale",
+      "shape": [
+        768,
+        1,
+        1
+      ],
+      "reason": "layer_scale_not_present_in_snn"
+    },
+    {
+      "source": "features.7.2.block.2.weight",
+      "shape": [
+        768
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "features.7.2.block.2.bias",
+      "shape": [
+        768
+      ],
+      "reason": "normalization_not_present_in_snn"
+    },
+    {
+      "source": "classifier.0.weight",
+      "shape": [
+        768
+      ],
+      "reason": "imagenet_classifier_or_final_norm_not_used"
+    },
+    {
+      "source": "classifier.0.bias",
+      "shape": [
+        768
+      ],
+      "reason": "imagenet_classifier_or_final_norm_not_used"
+    },
+    {
+      "source": "classifier.2.weight",
+      "shape": [
+        1000,
+        768
+      ],
+      "reason": "imagenet_classifier_or_final_norm_not_used"
+    },
+    {
+      "source": "classifier.2.bias",
+      "shape": [
+        1000
+      ],
+      "reason": "imagenet_classifier_or_final_norm_not_used"
+    }
+  ],
+  "preserved_target": [
+    {
+      "target": "downsamples.0.neuron.threshold",
+      "shape": [
+        96
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "downsamples.0.neuron.delay.raw_delay",
+      "shape": [
+        96
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "downsamples.1.neuron.threshold",
+      "shape": [
+        192
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "downsamples.1.neuron.delay.raw_delay",
+      "shape": [
+        192
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "downsamples.2.neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "downsamples.2.neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "downsamples.3.neuron.threshold",
+      "shape": [
+        768
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "downsamples.3.neuron.delay.raw_delay",
+      "shape": [
+        768
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.0.0.dw_neuron.threshold",
+      "shape": [
+        96
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.0.0.dw_neuron.delay.raw_delay",
+      "shape": [
+        96
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.0.0.pw1_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.0.0.pw1_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.0.0.pw2_neuron.threshold",
+      "shape": [
+        96
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.0.0.pw2_neuron.delay.raw_delay",
+      "shape": [
+        96
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.0.1.dw_neuron.threshold",
+      "shape": [
+        96
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.0.1.dw_neuron.delay.raw_delay",
+      "shape": [
+        96
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.0.1.pw1_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.0.1.pw1_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.0.1.pw2_neuron.threshold",
+      "shape": [
+        96
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.0.1.pw2_neuron.delay.raw_delay",
+      "shape": [
+        96
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.0.2.dw_neuron.threshold",
+      "shape": [
+        96
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.0.2.dw_neuron.delay.raw_delay",
+      "shape": [
+        96
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.0.2.pw1_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.0.2.pw1_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.0.2.pw2_neuron.threshold",
+      "shape": [
+        96
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.0.2.pw2_neuron.delay.raw_delay",
+      "shape": [
+        96
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.1.0.dw_neuron.threshold",
+      "shape": [
+        192
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.1.0.dw_neuron.delay.raw_delay",
+      "shape": [
+        192
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.1.0.pw1_neuron.threshold",
+      "shape": [
+        768
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.1.0.pw1_neuron.delay.raw_delay",
+      "shape": [
+        768
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.1.0.pw2_neuron.threshold",
+      "shape": [
+        192
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.1.0.pw2_neuron.delay.raw_delay",
+      "shape": [
+        192
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.1.1.dw_neuron.threshold",
+      "shape": [
+        192
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.1.1.dw_neuron.delay.raw_delay",
+      "shape": [
+        192
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.1.1.pw1_neuron.threshold",
+      "shape": [
+        768
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.1.1.pw1_neuron.delay.raw_delay",
+      "shape": [
+        768
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.1.1.pw2_neuron.threshold",
+      "shape": [
+        192
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.1.1.pw2_neuron.delay.raw_delay",
+      "shape": [
+        192
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.1.2.dw_neuron.threshold",
+      "shape": [
+        192
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.1.2.dw_neuron.delay.raw_delay",
+      "shape": [
+        192
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.1.2.pw1_neuron.threshold",
+      "shape": [
+        768
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.1.2.pw1_neuron.delay.raw_delay",
+      "shape": [
+        768
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.1.2.pw2_neuron.threshold",
+      "shape": [
+        192
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.1.2.pw2_neuron.delay.raw_delay",
+      "shape": [
+        192
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.0.dw_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.0.dw_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.0.pw1_neuron.threshold",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.0.pw1_neuron.delay.raw_delay",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.0.pw2_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.0.pw2_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.1.dw_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.1.dw_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.1.pw1_neuron.threshold",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.1.pw1_neuron.delay.raw_delay",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.1.pw2_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.1.pw2_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.2.dw_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.2.dw_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.2.pw1_neuron.threshold",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.2.pw1_neuron.delay.raw_delay",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.2.pw2_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.2.pw2_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.3.dw_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.3.dw_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.3.pw1_neuron.threshold",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.3.pw1_neuron.delay.raw_delay",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.3.pw2_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.3.pw2_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.4.dw_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.4.dw_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.4.pw1_neuron.threshold",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.4.pw1_neuron.delay.raw_delay",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.4.pw2_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.4.pw2_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.5.dw_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.5.dw_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.5.pw1_neuron.threshold",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.5.pw1_neuron.delay.raw_delay",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.5.pw2_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.5.pw2_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.6.dw_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.6.dw_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.6.pw1_neuron.threshold",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.6.pw1_neuron.delay.raw_delay",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.6.pw2_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.6.pw2_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.7.dw_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.7.dw_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.7.pw1_neuron.threshold",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.7.pw1_neuron.delay.raw_delay",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.7.pw2_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.7.pw2_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.8.dw_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.8.dw_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.8.pw1_neuron.threshold",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.8.pw1_neuron.delay.raw_delay",
+      "shape": [
+        1536
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.2.8.pw2_neuron.threshold",
+      "shape": [
+        384
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.2.8.pw2_neuron.delay.raw_delay",
+      "shape": [
+        384
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.3.0.dw_neuron.threshold",
+      "shape": [
+        768
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.3.0.dw_neuron.delay.raw_delay",
+      "shape": [
+        768
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.3.0.pw1_neuron.threshold",
+      "shape": [
+        3072
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.3.0.pw1_neuron.delay.raw_delay",
+      "shape": [
+        3072
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.3.0.pw2_neuron.threshold",
+      "shape": [
+        768
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.3.0.pw2_neuron.delay.raw_delay",
+      "shape": [
+        768
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.3.1.dw_neuron.threshold",
+      "shape": [
+        768
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.3.1.dw_neuron.delay.raw_delay",
+      "shape": [
+        768
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.3.1.pw1_neuron.threshold",
+      "shape": [
+        3072
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.3.1.pw1_neuron.delay.raw_delay",
+      "shape": [
+        3072
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.3.1.pw2_neuron.threshold",
+      "shape": [
+        768
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.3.1.pw2_neuron.delay.raw_delay",
+      "shape": [
+        768
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.3.2.dw_neuron.threshold",
+      "shape": [
+        768
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.3.2.dw_neuron.delay.raw_delay",
+      "shape": [
+        768
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.3.2.pw1_neuron.threshold",
+      "shape": [
+        3072
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.3.2.pw1_neuron.delay.raw_delay",
+      "shape": [
+        3072
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "stages.3.2.pw2_neuron.threshold",
+      "shape": [
+        768
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "stages.3.2.pw2_neuron.delay.raw_delay",
+      "shape": [
+        768
+      ],
+      "reason": "snn_delay_newly_initialized"
+    },
+    {
+      "target": "classifier.weight",
+      "shape": [
+        10,
+        768
+      ],
+      "reason": "cifar10_classifier_newly_initialized"
+    },
+    {
+      "target": "classifier.bias",
+      "shape": [
+        10
+      ],
+      "reason": "cifar10_classifier_newly_initialized"
+    },
+    {
+      "target": "output_neuron.threshold",
+      "shape": [
+        10
+      ],
+      "reason": "snn_threshold_newly_initialized"
+    },
+    {
+      "target": "output_neuron.delay.raw_delay",
+      "shape": [
+        10
+      ],
+      "reason": "snn_delay_newly_initialized"
+    }
+  ]
+}
