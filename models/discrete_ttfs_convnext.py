@@ -237,7 +237,7 @@ class DiscreteTTFSConvNeXt(nn.Module):
         self.maximum_spikes_per_neuron = 1
         self.residual = bool(residual)
         self.threshold_mode = threshold_mode
-        if readout_mode not in {"ttfs", "membrane", "hybrid", "soft_time"}:
+        if readout_mode not in {"ttfs", "spike_integrator", "membrane", "hybrid", "soft_time"}:
             raise ValueError(f"unknown readout_mode={readout_mode!r}")
         if soft_time_beta <= 0:
             raise ValueError("soft_time_beta must be positive")
@@ -347,7 +347,12 @@ class DiscreteTTFSConvNeXt(nn.Module):
                 stage_states.append(st)
             block_states.append(stage_states)
         pooled_sample = sample.mean((-2, -1))
-        output_state = self.output_neuron.init_state(self.classifier(pooled_sample))
+        if self.readout_mode == "spike_integrator":
+            output_state = self.output_neuron.init_state(torch.zeros(
+                (x.shape[0], self.num_classes), device=x.device, dtype=x.dtype
+            ))
+        else:
+            output_state = self.output_neuron.init_state(self.classifier(pooled_sample))
 
         spike_count_per_t = []
         synops_per_t = []
@@ -389,13 +394,18 @@ class DiscreteTTFSConvNeXt(nn.Module):
             )
             final_membrane_trace.append(block_states[3][-1][2].membrane)
             pooled = spikes.mean((-2, -1))
-            if return_stats:
-                step_synops += self._count_synops(self.classifier, pooled)
-            class_current = self.classifier(pooled)
-            class_spike, output_state = self.output_neuron.forward_step(class_current, output_state, t)
-            record("output", class_spike)
-            # Differentiable TTFS score: an earlier first spike receives a larger score.
-            class_score = class_score + class_spike * ((self.time_steps - t) / float(self.time_steps))
+            if self.readout_mode == "spike_integrator":
+                class_spike = torch.zeros(
+                    (x.shape[0], self.num_classes), device=x.device, dtype=x.dtype
+                )
+            else:
+                if return_stats:
+                    step_synops += self._count_synops(self.classifier, pooled)
+                class_current = self.classifier(pooled)
+                class_spike, output_state = self.output_neuron.forward_step(class_current, output_state, t)
+                record("output", class_spike)
+                # Differentiable TTFS score: an earlier first spike receives a larger score.
+                class_score = class_score + class_spike * ((self.time_steps - t) / float(self.time_steps))
             if return_stats:
                 step_spikes += float(class_spike.detach().sum().item())
                 spike_count_per_t.append(step_spikes)
@@ -409,6 +419,12 @@ class DiscreteTTFSConvNeXt(nn.Module):
             # Preserve the historical differentiable class first-spike score exactly.
             final_features = pooled_ttfs
             logits = class_score
+        elif self.readout_mode == "spike_integrator":
+            # Event-only non-spiking output integrator. pooled_ttfs is derived
+            # solely from hard final-stage first-spike events accumulated with
+            # earlier-spike weighting; no membrane tensor enters this branch.
+            final_features = pooled_ttfs
+            logits = self.classifier(final_features)
         elif self.readout_mode == "membrane":
             final_features = pooled_membrane
             logits = self.classifier(final_features)
@@ -444,6 +460,10 @@ class DiscreteTTFSConvNeXt(nn.Module):
             "output_first_spike_times": first_time.detach(),
             "synops_status": "approximate_event_fanout",
             "readout_mode": self.readout_mode,
+            "classifier_input_source": (
+                "weighted_final_stage_hard_spikes_only"
+                if self.readout_mode == "spike_integrator" else self.readout_mode
+            ),
             "stage_membrane_diagnostics": {
                 f"stage_{stage}": {
                     "membrane_mean": float(membranes[-1].float().mean().item()),

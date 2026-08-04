@@ -1,0 +1,106 @@
+{
+  "experiment_name": "cifar10_baseline_pure_snn_ttfs_t5_seed42",
+  "status": "completed",
+  "dataset": "CIFAR-10",
+  "temporal_model_type": "DISCRETE_TIME_TTFS_SNN",
+  "time_steps": 2,
+  "seed": 42,
+  "residual_fusion": "earliest_spike_or",
+  "learnable_delay": true,
+  "force_positive_weights": false,
+  "best_epoch": 2,
+  "best_validation_accuracy": 14.0625,
+  "test_accuracy": 14.84375,
+  "test_loss": 2.2953449487686157,
+  "spikes_per_sample": 5754.7578125,
+  "synops_per_sample_estimate": 7551264.2578125,
+  "threshold_mode": "learnable_channel",
+  "threshold_stats": {
+    "mean": 0.20000584423542023,
+    "min": 0.19991610944271088,
+    "max": 0.20009681582450867,
+    "gradient_mean": 1.1682561535053537e-05,
+    "update_magnitude": 7.756510967737995e-06,
+    "frozen": false
+  },
+  "readout_mode": "spike_integrator",
+  "soft_time_beta": 10.0,
+  "stage_spike_distribution": {
+    "stage_0": {
+      "spike_fraction_t0": 0.017602285370230675,
+      "spike_fraction_t1": 0.0514195766299963,
+      "silent_neuron_fraction": 0.9309781491756439,
+      "repeated_spike_ratio": 0.0
+    },
+    "stage_1": {
+      "spike_fraction_t0": 0.001091003476176411,
+      "spike_fraction_t1": 0.0305608119815588,
+      "silent_neuron_fraction": 0.9683482050895691,
+      "repeated_spike_ratio": 0.0
+    },
+    "stage_2": {
+      "spike_fraction_t0": 0.0,
+      "spike_fraction_t1": 0.027130127884447575,
+      "silent_neuron_fraction": 0.9728699028491974,
+      "repeated_spike_ratio": 0.0
+    },
+    "stage_3": {
+      "spike_fraction_t0": 0.0,
+      "spike_fraction_t1": 0.05841064639389515,
+      "silent_neuron_fraction": 0.9415893852710724,
+      "repeated_spike_ratio": 0.0
+    }
+  },
+  "stage_membrane_diagnostics": {
+    "stage_0": {
+      "membrane_mean": -0.0004810966202057898,
+      "membrane_std": 0.003212117590010166,
+      "effective_threshold_mean": 0.20000001788139343,
+      "membrane_minus_threshold_mean": -0.200481116771698,
+      "near_threshold_fraction": 0.0
+    },
+    "stage_1": {
+      "membrane_mean": -0.00019960459030698985,
+      "membrane_std": 0.0034644748084247112,
+      "effective_threshold_mean": 0.20000001788139343,
+      "membrane_minus_threshold_mean": -0.20019960403442383,
+      "near_threshold_fraction": 0.0
+    },
+    "stage_2": {
+      "membrane_mean": -0.00020823237719014287,
+      "membrane_std": 0.0033979362342506647,
+      "effective_threshold_mean": 0.20000001788139343,
+      "membrane_minus_threshold_mean": -0.20020823180675507,
+      "near_threshold_fraction": 0.0
+    },
+    "stage_3": {
+      "membrane_mean": 0.00021319178631529212,
+      "membrane_std": 0.0034547937102615833,
+      "effective_threshold_mean": 0.20000001788139343,
+      "membrane_minus_threshold_mean": -0.19978682696819305,
+      "near_threshold_fraction": 0.0
+    }
+  },
+  "final_feature_diagnostics": {
+    "feature_std_across_batch": 0.08251067623496056,
+    "mean_pairwise_feature_distance": 4.1652820110321045,
+    "distinct_logit_vectors": 59.5,
+    "classwise_logit_std": [
+      0.07100424915552139,
+      0.06880050525069237,
+      0.052453214302659035,
+      0.07593696936964989,
+      0.0755787082016468,
+      0.0653889961540699,
+      0.11295896768569946,
+      0.10869913548231125,
+      0.06586996652185917,
+      0.05512583628296852
+    ]
+  },
+  "trainable_parameters": 27887262,
+  "total_parameters": 27887262,
+  "model_size_mb": 106.38146209716797,
+  "training_time_seconds": 30.33322048187256,
+  "checkpoint": "results\\spike_integrator_comparison\\spike_integrator\\best_checkpoint.pth"
+}

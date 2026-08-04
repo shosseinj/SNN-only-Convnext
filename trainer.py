@@ -36,13 +36,13 @@ def parser():
     p.add_argument("--threshold_min", type=float, default=0.05)
     p.add_argument("--threshold_max", type=float, default=0.8)
     p.add_argument("--threshold_freeze_epochs", type=int, default=3)
-    p.add_argument("--readout_mode", choices=["ttfs", "membrane", "hybrid", "soft_time"], default="hybrid")
+    p.add_argument("--readout_mode", choices=["ttfs", "spike_integrator", "membrane", "hybrid", "soft_time"], default="spike_integrator")
     p.add_argument("--soft_time_beta", type=float, default=10.0)
     p.add_argument("--learnable_delay", type=str2bool, default=True)
     p.add_argument("--residual", type=str2bool, default=True)
     p.add_argument("--init_delay", type=float, default=0.0)
     p.add_argument("--force_positive_weights", type=str2bool, default=False)
-    p.add_argument("--imagenet_pretrained", type=str2bool, default=False,
+    p.add_argument("--imagenet_pretrained", type=str2bool, default=True,
                    help="partially initialize Tiny from torchvision ImageNet-1K ConvNeXt-Tiny")
     p.add_argument("--imagenet_positive_transform", choices=["reject", "abs"], default="reject",
                    help="explicit handling of signed ImageNet conv weights when positivity is enabled")
@@ -126,6 +126,38 @@ def global_gradient_norm(parameters) -> float:
     return float(squared_norm.sqrt().item()) if squared_norm is not None else 0.0
 
 
+def regional_gradient_norms(model):
+    regions = {name: [] for name in (
+        "stem", "stage_0", "stage_1", "stage_2", "stage_3",
+        "classifier", "thresholds", "delays",
+    )}
+    classifier = model.hybrid_classifier if model.readout_mode == "hybrid" else model.classifier
+    classifier_ids = {id(parameter) for parameter in classifier.parameters()}
+    for name, parameter in model.named_parameters():
+        if parameter.grad is None:
+            continue
+        if id(parameter) in classifier_ids:
+            region = "classifier"
+        elif "raw_threshold" in name:
+            region = "thresholds"
+        elif "raw_delay" in name:
+            region = "delays"
+        elif name.startswith("downsamples.0"):
+            region = "stem"
+        elif name.startswith("stages.0"):
+            region = "stage_0"
+        elif name.startswith("downsamples.1") or name.startswith("stages.1"):
+            region = "stage_1"
+        elif name.startswith("downsamples.2") or name.startswith("stages.2"):
+            region = "stage_2"
+        elif name.startswith("downsamples.3") or name.startswith("stages.3"):
+            region = "stage_3"
+        else:
+            continue
+        regions[region].append(parameter)
+    return {name: global_gradient_norm(parameters) for name, parameters in regions.items()}
+
+
 def threshold_parameters(model):
     return [
         neuron.raw_threshold
@@ -185,6 +217,10 @@ def run_epoch(model, loader, criterion, device, optimizer=None, scaler=None, amp
     stage_spike_diagnostics = {}
     stage_membrane_diagnostics = {}
     final_feature_diagnostics = {}
+    regional_grad_totals = {name: 0.0 for name in (
+        "stem", "stage_0", "stage_1", "stage_2", "stage_3",
+        "classifier", "thresholds", "delays",
+    )}
     start = time.time()
     for i, (images, labels) in enumerate(loader):
         if max_batches and i >= max_batches: break
@@ -216,6 +252,8 @@ def run_epoch(model, loader, criterion, device, optimizer=None, scaler=None, amp
             classifier = model.hybrid_classifier if model.readout_mode == "hybrid" else model.classifier
             if classifier.weight.grad is not None:
                 total_classifier_grad_norm += float(classifier.weight.grad.detach().float().norm().item())
+            for region, norm in regional_gradient_norms(model).items():
+                regional_grad_totals[region] += norm
         n = labels.numel()
         total += n; total_loss += loss.item() * n
         total_correct += (logits.argmax(1) == labels).sum().item()
@@ -245,6 +283,9 @@ def run_epoch(model, loader, criterion, device, optimizer=None, scaler=None, amp
         "stage_spike_distribution": _average_nested(stage_spike_diagnostics, diagnostic_batches),
         "stage_membrane_diagnostics": _average_nested(stage_membrane_diagnostics, diagnostic_batches),
         "final_feature_diagnostics": _average_nested(final_feature_diagnostics, diagnostic_batches),
+        "regional_gradient_norms": {
+            region: value / max(grad_norm_steps, 1) for region, value in regional_grad_totals.items()
+        } if training else None,
     }
 
 
