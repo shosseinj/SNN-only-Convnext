@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 import torch
@@ -76,11 +77,21 @@ def load_torchvision_convnext_tiny(
 
     source_name = "provided_state_dict"
     if source_state_dict is None:
-        from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
-
-        weights = ConvNeXt_Tiny_Weights.IMAGENET1K_V1
-        source_state_dict = convnext_tiny(weights=weights).state_dict()
-        source_name = "torchvision.ConvNeXt_Tiny_Weights.IMAGENET1K_V1"
+        weights_path = (
+            Path(__file__).resolve().parent
+            / "weights"
+            / "Convnext_weight"
+            / "convnext_tiny-983f1562.pth"
+        )
+        if not weights_path.is_file():
+            raise FileNotFoundError(f"ConvNeXt-Tiny weights not found: {weights_path}")
+        source_state_dict = torch.load(weights_path, map_location="cpu", weights_only=True)
+        if not isinstance(source_state_dict, Mapping):
+            raise TypeError(
+                f"Expected a state-dict mapping in {weights_path}, "
+                f"got {type(source_state_dict).__name__}"
+            )
+        source_name = str(weights_path)
 
     target_state = model.state_dict()
     proposed: dict[str, torch.Tensor] = {}

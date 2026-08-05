@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "SNN Finetune",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/trainer.py",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}",
+      "python": "C:/Users/jafari.h/Desktop/ai_project/.venv/Scripts/python.exe",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+      // "args": ["--save", "True"]
+    }
+  ]
+}

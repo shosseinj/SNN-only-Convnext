@@ -1,6 +1,6 @@
 {
   "status": "loaded",
-  "source": "torchvision.ConvNeXt_Tiny_Weights.IMAGENET1K_V1",
+  "source": "C:\\Users\\jafari.h\\Desktop\\ai_project\\SNN-only-Convnext\\weights\\Convnext_weight\\convnext_tiny-983f1562.pth",
   "architecture": {
     "depths": [
       3,
