@@ -33,27 +33,33 @@ class SurrogateStep(torch.autograd.Function):
     """Binary threshold in forward; unit-gain fast-sigmoid in backward."""
 
     @staticmethod
-    def forward(ctx, x: torch.Tensor, slope: float) -> torch.Tensor:
+    def forward(
+        ctx, x: torch.Tensor, slope: float, grad_clip: float
+    ) -> torch.Tensor:
         ctx.save_for_backward(x)
         ctx.slope = float(slope)
+        ctx.grad_clip = float(grad_clip)
         return (x >= 0).to(x.dtype)
 
     @staticmethod
     def backward(ctx, grad_output: torch.Tensor):
         (x,) = ctx.saved_tensors
         slope = ctx.slope
+        grad_clip = ctx.grad_clip
         # Deep explicitly-unrolled SNNs can create very large local adjoints
         # even when the final global parameter norm is moderate. Bound the
         # surrogate adjoint before convolution backward and do the derivative
         # math in FP32; the hard-spike forward path is unchanged.
-        grad_output_fp32 = grad_output.float().clamp_(-64.0, 64.0)
+        grad_output_fp32 = grad_output.float().clamp_(-grad_clip, grad_clip)
         x_fp32 = x.float()
         surrogate = 1.0 / (1.0 + slope * x_fp32.abs()).pow(2)
-        return (grad_output_fp32 * surrogate).to(grad_output.dtype), None
+        return (grad_output_fp32 * surrogate).to(grad_output.dtype), None, None
 
 
-def spike_fn(x: torch.Tensor, slope: float = 5.0) -> torch.Tensor:
-    return SurrogateStep.apply(x, slope)
+def spike_fn(
+    x: torch.Tensor, slope: float = 5.0, grad_clip: float = 16.0
+) -> torch.Tensor:
+    return SurrogateStep.apply(x, slope, grad_clip)
 
 
 # ---------------------------------------------------------------------------
@@ -202,6 +208,7 @@ class FirstSpikeNeuron(nn.Module):
         init_delay: float = 0.0,
         delay_temperature: float = 0.25,
         surrogate_slope: float = 5.0,
+        surrogate_grad_clip: float = 16.0,
         threshold_mode: str = "fixed",
         threshold_min: float = 0.05,
         threshold_max: float = 0.8,
@@ -221,6 +228,9 @@ class FirstSpikeNeuron(nn.Module):
         self.threshold_min = float(threshold_min)
         self.threshold_max = float(threshold_max)
         self.surrogate_slope = float(surrogate_slope)
+        if surrogate_grad_clip <= 0:
+            raise ValueError("surrogate_grad_clip must be positive")
+        self.surrogate_grad_clip = float(surrogate_grad_clip)
 
         if threshold_mode == "fixed":
             self.register_buffer(
@@ -306,6 +316,7 @@ class FirstSpikeNeuron(nn.Module):
         candidate = spike_fn(
             membrane - threshold.view(*shape),
             self.surrogate_slope,
+            self.surrogate_grad_clip,
         )
         spike = candidate * active
 
@@ -346,6 +357,7 @@ class SpikingDownsample(nn.Module):
         threshold_min: float,
         threshold_max: float,
         current_norm: bool,
+        surrogate_grad_clip: float = 16.0,
     ):
         super().__init__()
         self.synapse = EffectiveConv2d(
@@ -367,6 +379,7 @@ class SpikingDownsample(nn.Module):
             threshold_mode=threshold_mode,
             threshold_min=threshold_min,
             threshold_max=threshold_max,
+            surrogate_grad_clip=surrogate_grad_clip,
         )
 
     def current(self, spikes: torch.Tensor) -> torch.Tensor:
@@ -404,7 +417,11 @@ class SpikingDownsample(nn.Module):
         return output, state, current
 
 
-def hard_or_ste(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+def hard_or_ste(
+    main: torch.Tensor,
+    residual: torch.Tensor,
+    main_gradient_scale: float = 0.5,
+) -> torch.Tensor:
     """Hard logical OR forward with a stable residual-style surrogate.
 
     Forward:
@@ -419,8 +436,8 @@ def hard_or_ste(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     gradient into both paths caused overflow across the 18-block Tiny model;
     averaging both paths instead made early-stage gradients vanish.
     """
-    hard = torch.clamp(a + b, 0.0, 1.0)
-    soft = b + 0.75 * a
+    hard = torch.clamp(main + residual, 0.0, 1.0)
+    soft = residual + float(main_gradient_scale) * main
     return soft + (hard - soft).detach()
 
 
@@ -455,6 +472,8 @@ class SpikingConvNeXtBlock(nn.Module):
         threshold_max: float = 0.8,
         current_norm: bool = True,
         force_fp32_norm: bool = False,
+        residual_main_gradient_scale: float = 0.25,
+        surrogate_grad_clip: float = 16.0,
     ):
         super().__init__()
 
@@ -462,6 +481,7 @@ class SpikingConvNeXtBlock(nn.Module):
             threshold_mode=threshold_mode,
             threshold_min=threshold_min,
             threshold_max=threshold_max,
+            surrogate_grad_clip=surrogate_grad_clip,
         )
 
         # The depthwise convolution remains an ordinary affine/synaptic
@@ -521,6 +541,7 @@ class SpikingConvNeXtBlock(nn.Module):
 
         self.time_steps = int(time_steps)
         self.residual = bool(residual)
+        self.residual_main_gradient_scale = float(residual_main_gradient_scale)
 
     def init_states(
         self,
@@ -600,7 +621,9 @@ class SpikingConvNeXtBlock(nn.Module):
         if self.residual:
             # Hard forward is binary OR. With first-spike-only masking this is
             # equivalent to selecting the earlier main/residual event.
-            fused_event = hard_or_ste(main_spike, x_spike)
+            fused_event = hard_or_ste(
+                main_spike, x_spike, self.residual_main_gradient_scale
+            )
 
             if out_first is not None and state_output.first_spike is not None:
                 no_spike = torch.full_like(
@@ -662,20 +685,22 @@ class DiscreteTTFSConvNeXt(nn.Module):
         num_classes: int = 10,
         depths: Sequence[int] = (3, 3, 9, 3),
         dims: Sequence[int] = (96, 192, 384, 768),
-        time_steps: int = 2,
-        threshold: float = 0.2,
+        time_steps: int = 4,
+        threshold: float = 0.4,
         force_positive_weights: bool = False,
         learnable_delay: bool = True,
-        init_delay: float = 0.0,
+        init_delay: float = 0.5,
         residual: bool = True,
         threshold_mode: str = "learnable_channel",
-        threshold_min: float = 0.05,
-        threshold_max: float = 0.8,
+        threshold_min: float = 0.1,
+        threshold_max: float = 1.2,
         readout_mode: str = "spike_integrator",
         soft_time_beta: float = 10.0,
         current_norm: bool = True,
         cifar_stem: bool = True,
-        input_no_spike_threshold: float = 0.0,
+        input_no_spike_threshold: float = 0.05,
+        residual_main_gradient_scale: float = 0.25,
+        surrogate_grad_clip: float = 16.0,
         track_first_spike: bool = False,
         use_checkpointing: bool = False,
     ):
@@ -699,6 +724,8 @@ class DiscreteTTFSConvNeXt(nn.Module):
         self.readout_mode = readout_mode
         self.soft_time_beta = float(soft_time_beta)
         self.input_no_spike_threshold = float(input_no_spike_threshold)
+        self.residual_main_gradient_scale = float(residual_main_gradient_scale)
+        self.surrogate_grad_clip = float(surrogate_grad_clip)
         self.track_first_spike = bool(track_first_spike)
         self.use_checkpointing = bool(use_checkpointing)
         self.cifar_stem = bool(cifar_stem)
@@ -733,6 +760,7 @@ class DiscreteTTFSConvNeXt(nn.Module):
                 threshold_min=threshold_min,
                 threshold_max=threshold_max,
                 current_norm=current_norm,
+                surrogate_grad_clip=surrogate_grad_clip,
             )
         )
 
@@ -753,6 +781,7 @@ class DiscreteTTFSConvNeXt(nn.Module):
                     threshold_min=threshold_min,
                     threshold_max=threshold_max,
                     current_norm=current_norm,
+                    surrogate_grad_clip=surrogate_grad_clip,
                 )
             )
 
@@ -773,6 +802,8 @@ class DiscreteTTFSConvNeXt(nn.Module):
                             threshold_max=threshold_max,
                             current_norm=current_norm,
                             force_fp32_norm=(stage == 3),
+                            residual_main_gradient_scale=residual_main_gradient_scale,
+                            surrogate_grad_clip=surrogate_grad_clip,
                         )
                         for _ in range(depths[stage])
                     ]
@@ -802,6 +833,7 @@ class DiscreteTTFSConvNeXt(nn.Module):
                 threshold_mode=threshold_mode,
                 threshold_min=threshold_min,
                 threshold_max=threshold_max,
+                surrogate_grad_clip=surrogate_grad_clip,
             )
         else:
             self.output_neuron = None
@@ -1120,6 +1152,13 @@ class DiscreteTTFSConvNeXt(nn.Module):
                     "repeated_spike_ratio": (
                         stage_repeated_counts[stage]
                         / max(stage_unit_counts[stage], 1)
+                    ),
+                    "mean_first_spike_time": (
+                        sum(
+                            step * stage_step_spike_counts[stage][step]
+                            for step in range(self.time_steps)
+                        )
+                        / max(float(stage_seen[stage].sum().item()), 1.0)
                     ),
                 }
                 for stage in range(4)

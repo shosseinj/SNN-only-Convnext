@@ -1,0 +1,53 @@
+{
+  "experiment_name": "cifar10_ann_relu_tiny_seed42_fp32",
+  "data_path": "../cifar_data",
+  "output_dir": "results\\cifar10_ann_relu_tiny_seed42_epochs200_bs128_lr0p001",
+  "model_size": "tiny",
+  "num_classes": 10,
+  "cifar_stem": true,
+  "current_norm": true,
+  "residual": true,
+  "force_positive_weights": false,
+  "batch_size": 128,
+  "epochs": 200,
+  "lr": 0.001,
+  "min_lr": 1e-05,
+  "weight_decay": 0.05,
+  "label_smoothing": 0.1,
+  "warmup_epochs": 5,
+  "val_fraction": 0.1,
+  "seed": 42,
+  "num_workers": 4,
+  "device": "cuda",
+  "amp": false,
+  "amp_init_scale": 65536.0,
+  "gradient_accumulation_steps": 1,
+  "grad_clip": 5.0,
+  "resume": "",
+  "download": false,
+  "dry_run": false,
+  "max_train_batches": 0,
+  "max_val_batches": 0,
+  "max_test_batches": 0,
+  "train_subset_size": 0,
+  "val_subset_size": 0,
+  "synthetic_data": false,
+  "model_type": "ANN_CONVNEXT_RELU_TTFS_TEACHER",
+  "dataset": "CIFAR-10",
+  "input_size": [
+    3,
+    32,
+    32
+  ],
+  "normalization_mean": [
+    0.4914,
+    0.4822,
+    0.4465
+  ],
+  "normalization_std": [
+    0.247,
+    0.2435,
+    0.2616
+  ],
+  "conversion_target": "two_TTFS_design_B"
+}

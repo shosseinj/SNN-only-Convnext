@@ -3,7 +3,7 @@
 Key properties
 --------------
 - Explicit simulation over T discrete time bins.
-- Every hidden affine operation is followed by a first-spike-only neuron.
+- Design B keeps the internal ConvNeXt path analog; GELU follows pw1 and a single TTFS neuron converts each block output back to spikes.
 - Hidden synapses use bias=False, preventing bias accumulation at every timestep.
 - Signed synapses use fan-in-aware initialization.
 - Optional current normalization is applied before membrane integration.
@@ -33,27 +33,33 @@ class SurrogateStep(torch.autograd.Function):
     """Binary threshold in forward; unit-gain fast-sigmoid in backward."""
 
     @staticmethod
-    def forward(ctx, x: torch.Tensor, slope: float) -> torch.Tensor:
+    def forward(
+        ctx, x: torch.Tensor, slope: float, grad_clip: float
+    ) -> torch.Tensor:
         ctx.save_for_backward(x)
         ctx.slope = float(slope)
+        ctx.grad_clip = float(grad_clip)
         return (x >= 0).to(x.dtype)
 
     @staticmethod
     def backward(ctx, grad_output: torch.Tensor):
         (x,) = ctx.saved_tensors
         slope = ctx.slope
+        grad_clip = ctx.grad_clip
         # Deep explicitly-unrolled SNNs can create very large local adjoints
         # even when the final global parameter norm is moderate. Bound the
         # surrogate adjoint before convolution backward and do the derivative
         # math in FP32; the hard-spike forward path is unchanged.
-        grad_output_fp32 = grad_output.float().clamp_(-64.0, 64.0)
+        grad_output_fp32 = grad_output.float().clamp_(-grad_clip, grad_clip)
         x_fp32 = x.float()
         surrogate = 1.0 / (1.0 + slope * x_fp32.abs()).pow(2)
-        return (grad_output_fp32 * surrogate).to(grad_output.dtype), None
+        return (grad_output_fp32 * surrogate).to(grad_output.dtype), None, None
 
 
-def spike_fn(x: torch.Tensor, slope: float = 5.0) -> torch.Tensor:
-    return SurrogateStep.apply(x, slope)
+def spike_fn(
+    x: torch.Tensor, slope: float = 5.0, grad_clip: float = 16.0
+) -> torch.Tensor:
+    return SurrogateStep.apply(x, slope, grad_clip)
 
 
 # ---------------------------------------------------------------------------
@@ -202,6 +208,7 @@ class FirstSpikeNeuron(nn.Module):
         init_delay: float = 0.0,
         delay_temperature: float = 0.25,
         surrogate_slope: float = 5.0,
+        surrogate_grad_clip: float = 16.0,
         threshold_mode: str = "fixed",
         threshold_min: float = 0.05,
         threshold_max: float = 0.8,
@@ -221,6 +228,9 @@ class FirstSpikeNeuron(nn.Module):
         self.threshold_min = float(threshold_min)
         self.threshold_max = float(threshold_max)
         self.surrogate_slope = float(surrogate_slope)
+        if surrogate_grad_clip <= 0:
+            raise ValueError("surrogate_grad_clip must be positive")
+        self.surrogate_grad_clip = float(surrogate_grad_clip)
 
         if threshold_mode == "fixed":
             self.register_buffer(
@@ -306,6 +316,7 @@ class FirstSpikeNeuron(nn.Module):
         candidate = spike_fn(
             membrane - threshold.view(*shape),
             self.surrogate_slope,
+            self.surrogate_grad_clip,
         )
         spike = candidate * active
 
@@ -346,6 +357,7 @@ class SpikingDownsample(nn.Module):
         threshold_min: float,
         threshold_max: float,
         current_norm: bool,
+        surrogate_grad_clip: float = 16.0,
     ):
         super().__init__()
         self.synapse = EffectiveConv2d(
@@ -367,6 +379,7 @@ class SpikingDownsample(nn.Module):
             threshold_mode=threshold_mode,
             threshold_min=threshold_min,
             threshold_max=threshold_max,
+            surrogate_grad_clip=surrogate_grad_clip,
         )
 
     def current(self, spikes: torch.Tensor) -> torch.Tensor:
@@ -417,7 +430,7 @@ def hard_or_ste(
         0 OR 1 = 1
         1 OR 1 = 1
 
-    ``main`` is the transformed branch and ``residual`` is the skip branch.
+    ``a`` is the transformed main branch and ``b`` is the residual branch.
     Backward preserves an identity gradient along the residual path and sends
     quarter-strength gradient into the main path. Sending the full upstream
     gradient into both paths caused overflow across the 18-block Tiny model;
@@ -429,176 +442,96 @@ def hard_or_ste(
 
 
 class SpikingConvNeXtBlock(nn.Module):
-    """Depthwise -> pointwise expansion -> pointwise projection, all spiking."""
+    """Block-level TTFS ConvNeXt block.
+
+    Structure:
+        spike input -> depthwise conv -> norm -> pw1 -> GELU -> pw2
+        -> output TTFS neuron -> earliest-event residual fusion
+    """
 
     def __init__(
-        self,
-        dim: int,
-        time_steps: int,
+        self, dim: int, time_steps: int,
         force_positive_weights: bool = False,
-        learnable_delay: bool = True,
-        init_delay: float = 0.0,
-        threshold: float = 0.2,
-        residual: bool = True,
-        threshold_mode: str = "fixed",
-        threshold_min: float = 0.05,
-        threshold_max: float = 0.8,
-        current_norm: bool = True,
+        learnable_delay: bool = True, init_delay: float = 0.0,
+        threshold: float = 0.2, residual: bool = True,
+        threshold_mode: str = "fixed", threshold_min: float = 0.05,
+        threshold_max: float = 0.8, current_norm: bool = True,
         force_fp32_norm: bool = False,
-        residual_main_gradient_scale: float = 0.5,
+        residual_main_gradient_scale: float = 0.25,
+        surrogate_grad_clip: float = 16.0,
     ):
         super().__init__()
-
         neuron_kwargs = dict(
             threshold_mode=threshold_mode,
             threshold_min=threshold_min,
             threshold_max=threshold_max,
+            surrogate_grad_clip=surrogate_grad_clip,
         )
-
-        self.dw = EffectiveConv2d(
-            dim,
-            dim,
-            kernel_size=7,
-            padding=3,
-            groups=dim,
-            bias=False,
-            force_positive_weights=force_positive_weights,
-        )
+        self.dw = EffectiveConv2d(dim, dim, 7, padding=3, groups=dim,
+                                  bias=False, force_positive_weights=force_positive_weights)
         self.dw_norm = ChannelCurrentNorm(dim, current_norm, force_fp32_norm)
-        self.pw1 = EffectiveConv2d(
-            dim,
-            4 * dim,
-            kernel_size=1,
-            bias=False,
-            force_positive_weights=force_positive_weights,
-            force_fp32=force_fp32_norm,
+        self.pw1 = EffectiveConv2d(dim, 4 * dim, 1, bias=False,
+                                   force_positive_weights=force_positive_weights,
+                                   force_fp32=force_fp32_norm)
+        self.pw1_norm = ChannelCurrentNorm(4 * dim, current_norm, force_fp32_norm)
+        self.activation = nn.GELU()
+        self.pw2 = EffectiveConv2d(4 * dim, dim, 1, bias=False,
+                                   force_positive_weights=force_positive_weights)
+        self.pw2_norm = ChannelCurrentNorm(dim, current_norm, force_fp32_norm)
+        self.output_neuron = FirstSpikeNeuron(
+            dim, time_steps, threshold, learnable_delay, init_delay, **neuron_kwargs
         )
-        self.pw1_neuron = FirstSpikeNeuron(
-            4 * dim,
-            time_steps,
-            threshold,
-            learnable_delay,
-            init_delay,
-            **neuron_kwargs,
-        )
-
-        self.pw2 = EffectiveConv2d(
-            4 * dim,
-            dim,
-            kernel_size=1,
-            bias=False,
-            force_positive_weights=force_positive_weights,
-        )
-        self.pw2_neuron = FirstSpikeNeuron(
-            dim,
-            time_steps,
-            threshold,
-            learnable_delay,
-            init_delay,
-            **neuron_kwargs,
-        )
-
+        self.activation_neuron = None
+        self.pw1_neuron = None
+        self.pw2_neuron = self.output_neuron
         self.time_steps = int(time_steps)
         self.residual = bool(residual)
         self.residual_main_gradient_scale = float(residual_main_gradient_scale)
 
-    def init_states(
-        self,
-        input_shape: Sequence[int],
-        device,
-        dtype,
-        track_first_spike: bool = False,
-    ):
+    def init_states(self, input_shape, device, dtype, track_first_spike=False):
         batch, channels, height, width = input_shape
         main_shape = (batch, channels, height, width)
-        expanded_shape = (batch, 4 * channels, height, width)
-        state_pw1 = self.pw1_neuron.init_state(expanded_shape, device, dtype, track_first_spike)
-        state_pw2 = self.pw2_neuron.init_state(main_shape, device, dtype, track_first_spike)
-
+        state_output = self.output_neuron.init_state(main_shape, device, dtype, track_first_spike)
         output_has_spiked = torch.zeros(main_shape, device=device, dtype=torch.bool)
         output_first_spike = (
             torch.full(main_shape, float(self.time_steps), device=device, dtype=dtype)
-            if track_first_spike
-            else None
+            if track_first_spike else None
         )
+        return [state_output, output_has_spiked, output_first_spike]
 
-        return [
-            state_pw1,
-            state_pw2,
-            output_has_spiked,
-            output_first_spike,
-        ]
-
-    def forward_step(
-        self,
-        x_spike: torch.Tensor,
-        states,
-        step: int,
-    ):
-        state_pw1, state_pw2, out_has_spiked, out_first = states
-
-        current_dw = self.dw_norm(self.dw(x_spike))
-        current_pw1 = self.pw1(current_dw)
-        z_pw1, state_pw1 = self.pw1_neuron.forward_step(
-            current_pw1,
-            state_pw1,
-            step,
-        )
-
-        current_pw2 = self.pw2(z_pw1)
-        main, state_pw2 = self.pw2_neuron.forward_step(
-            current_pw2,
-            state_pw2,
-            step,
-        )
+    def forward_step(self, x_spike: torch.Tensor, states, step: int):
+        state_output, out_has_spiked, out_first = states
+        dw_current = self.dw_norm(self.dw(x_spike))
+        pw1_current = self.pw1_norm(self.pw1(dw_current))
+        pw1_activation = self.activation(pw1_current)
+        pw2_current = self.pw2_norm(self.pw2(pw1_activation))
+        main_spike, state_output = self.output_neuron.forward_step(pw2_current, state_output, step)
 
         if self.residual:
-            # Event-space implementation of earliest-spike fusion.
-            fused_event = hard_or_ste(
-                main, x_spike, self.residual_main_gradient_scale
-            )
-            if out_first is not None and state_pw2.first_spike is not None:
+            fused_event = hard_or_ste(main_spike, x_spike, self.residual_main_gradient_scale)
+            if out_first is not None and state_output.first_spike is not None:
                 no_spike = torch.full_like(out_first, float(self.time_steps))
                 residual_first_now = torch.where(
-                    x_spike.detach().bool(),
-                    torch.full_like(out_first, float(step)),
-                    no_spike,
+                    x_spike.detach().bool(), torch.full_like(out_first, float(step)), no_spike
                 )
-                candidate_first = torch.minimum(
-                    state_pw2.first_spike, residual_first_now
-                )
+                candidate_first = torch.minimum(state_output.first_spike, residual_first_now)
             else:
                 candidate_first = None
         else:
-            fused_event = main
-            candidate_first = state_pw2.first_spike
+            fused_event = main_spike
+            candidate_first = state_output.first_spike
 
-        # Enforce one output event per neuron.
         active = (~out_has_spiked).to(fused_event.dtype)
         out = fused_event * active
         newly = out.detach().bool() & (~out_has_spiked)
-
         if out_first is not None and candidate_first is not None:
-            out_first = torch.where(
-                newly,
-                torch.minimum(out_first, candidate_first),
-                out_first,
-            )
+            out_first = torch.where(newly, torch.minimum(out_first, candidate_first), out_first)
 
-        return (
-            out,
-            [
-                state_pw1,
-                state_pw2,
-                out_has_spiked | newly,
-                out_first,
-            ],
-            {
-                "dw": current_dw,
-                "pw1": z_pw1,
-                "main": main,
-            },
-        )
+        return out, [state_output, out_has_spiked | newly, out_first], {
+            "dw_current": dw_current,
+            "pw1_activation": pw1_activation,
+            "main": main_spike,
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -606,7 +539,7 @@ class SpikingConvNeXtBlock(nn.Module):
 # ---------------------------------------------------------------------------
 
 class DiscreteTTFSConvNeXt(nn.Module):
-    """Pure discrete-time TTFS ConvNeXt with non-spiking output integrator."""
+    """Design-B discrete-time TTFS ConvNeXt with non-spiking output integrator."""
 
     def __init__(
         self,
@@ -628,7 +561,8 @@ class DiscreteTTFSConvNeXt(nn.Module):
         current_norm: bool = True,
         cifar_stem: bool = True,
         input_no_spike_threshold: float = 0.05,
-        residual_main_gradient_scale: float = 0.5,
+        residual_main_gradient_scale: float = 0.25,
+        surrogate_grad_clip: float = 16.0,
         track_first_spike: bool = False,
         use_checkpointing: bool = False,
     ):
@@ -646,12 +580,14 @@ class DiscreteTTFSConvNeXt(nn.Module):
 
         self.time_steps = int(time_steps)
         self.num_classes = int(num_classes)
-        self.temporal_model_type = "DISCRETE_TIME_TTFS_SNN"
+        self.temporal_model_type = "DISCRETE_TIME_BLOCK_TTFS_CONVNEXT_GELU"
+        self.block_design = "B1_GELU_single_output_TTFS"
         self.maximum_spikes_per_neuron = 1
         self.readout_mode = readout_mode
         self.soft_time_beta = float(soft_time_beta)
         self.input_no_spike_threshold = float(input_no_spike_threshold)
         self.residual_main_gradient_scale = float(residual_main_gradient_scale)
+        self.surrogate_grad_clip = float(surrogate_grad_clip)
         self.track_first_spike = bool(track_first_spike)
         self.use_checkpointing = bool(use_checkpointing)
         self.cifar_stem = bool(cifar_stem)
@@ -686,6 +622,7 @@ class DiscreteTTFSConvNeXt(nn.Module):
                 threshold_min=threshold_min,
                 threshold_max=threshold_max,
                 current_norm=current_norm,
+                surrogate_grad_clip=surrogate_grad_clip,
             )
         )
 
@@ -706,6 +643,7 @@ class DiscreteTTFSConvNeXt(nn.Module):
                     threshold_min=threshold_min,
                     threshold_max=threshold_max,
                     current_norm=current_norm,
+                    surrogate_grad_clip=surrogate_grad_clip,
                 )
             )
 
@@ -727,6 +665,7 @@ class DiscreteTTFSConvNeXt(nn.Module):
                             current_norm=current_norm,
                             force_fp32_norm=(stage == 3),
                             residual_main_gradient_scale=residual_main_gradient_scale,
+                            surrogate_grad_clip=surrogate_grad_clip,
                         )
                         for _ in range(depths[stage])
                     ]
@@ -756,6 +695,7 @@ class DiscreteTTFSConvNeXt(nn.Module):
                 threshold_mode=threshold_mode,
                 threshold_min=threshold_min,
                 threshold_max=threshold_max,
+                surrogate_grad_clip=surrogate_grad_clip,
             )
         else:
             self.output_neuron = None
@@ -940,22 +880,14 @@ class DiscreteTTFSConvNeXt(nn.Module):
                     )
 
                     if return_stats:
-                        # Exact event-input SynOps for each synapse.
+                        # Block-level TTFS with analog GELU:
+                        # dw consumes spikes; pw1 and pw2 consume analog tensors.
                         total_synops += self._synops(
                             block.dw,
                             block_input,
                         )
-                        total_synops += self._synops(
-                            block.pw1,
-                            internal["dw"],
-                        )
-                        total_synops += self._synops(
-                            block.pw2,
-                            internal["pw1"],
-                        )
 
                         populations = {
-                            "pw1": internal["pw1"],
                             "main": internal["main"],
                         }
                         for population_name, population in populations.items():
@@ -1012,7 +944,8 @@ class DiscreteTTFSConvNeXt(nn.Module):
             return logits
 
         # Synaptic-neuron sparsity counts each distinct neuron population once:
-        # downsample, depthwise, pw1, and pw2/main. Residual block outputs are
+        # downsample and block-output TTFS populations. The internal path is analog
+        # and is therefore excluded. Residual block outputs are
         # reported separately because they represent the same channel/spatial
         # population as pw2 and would otherwise double-count the denominator.
         hidden_spikes = sum(

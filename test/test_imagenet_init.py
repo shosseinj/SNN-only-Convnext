@@ -6,7 +6,7 @@ import gc
 import torch
 from torchvision.models import convnext_tiny
 
-from imagenet_init import load_torchvision_convnext_tiny
+from test.imagenet_init import load_torchvision_convnext_tiny
 from models.discrete_ttfs_convnext import build_discrete_ttfs_convnext
 
 

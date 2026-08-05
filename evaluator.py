@@ -10,7 +10,7 @@ from torchvision import datasets, transforms
 
 from models.discrete_ttfs_convnext import build_discrete_ttfs_convnext
 from experiment_utils import atomic_json_dump, count_parameters, model_size_mb
-from reproducibility import seed_everything, seed_worker
+from test.reproducibility import seed_everything, seed_worker
 
 
 def str2bool(v):
