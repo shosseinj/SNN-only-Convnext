@@ -1,0 +1,74 @@
+{
+  "experiment_name": "cifar10_baseline_pure_snn_ttfs_t5_seed42",
+  "status": "completed",
+  "dataset": "FakeData",
+  "temporal_model_type": "DISCRETE_TIME_TTFS_SNN",
+  "time_steps": 2,
+  "seed": 42,
+  "residual_fusion": "earliest_spike_or",
+  "learnable_delay": true,
+  "force_positive_weights": false,
+  "best_epoch": 0,
+  "best_validation_accuracy": 50.0,
+  "test_accuracy": 0.0,
+  "test_loss": 2.0653798580169678,
+  "spikes_per_sample": 2949561.5,
+  "synops_per_sample_estimate": 903732498.0,
+  "threshold_mode": "fixed",
+  "threshold_stats": {
+    "mean": 0.20000004768371582,
+    "min": 0.20000000298023224,
+    "max": 0.20000000298023224,
+    "gradient_mean": 0.0,
+    "update_magnitude": 0.0,
+    "frozen": true
+  },
+  "readout_mode": "spike_integrator",
+  "stage_spike_distribution": {
+    "stage_0": {
+      "spike_fraction_t0": 0.8620198369026184,
+      "spike_fraction_t1": 0.08648681640625,
+      "silent_neuron_fraction": 0.0514933280646801,
+      "repeated_spike_ratio": 0.0
+    },
+    "stage_1": {
+      "spike_fraction_t0": 0.8509114384651184,
+      "spike_fraction_t1": 0.0896097794175148,
+      "silent_neuron_fraction": 0.059478759765625,
+      "repeated_spike_ratio": 0.0
+    },
+    "stage_2": {
+      "spike_fraction_t0": 0.9672648310661316,
+      "spike_fraction_t1": 0.02431233786046505,
+      "silent_neuron_fraction": 0.0084228515625,
+      "repeated_spike_ratio": 0.0
+    },
+    "stage_3": {
+      "spike_fraction_t0": 0.7899169921875,
+      "spike_fraction_t1": 0.117431640625,
+      "silent_neuron_fraction": 0.0926513671875,
+      "repeated_spike_ratio": 0.0
+    }
+  },
+  "final_feature_diagnostics": {
+    "feature_std_across_batch": 0.012776692397892475,
+    "distinct_logit_vectors": 2.0,
+    "classwise_logit_std": [
+      0.012426167726516724,
+      0.015835464000701904,
+      0.01758497953414917,
+      0.0008699968457221985,
+      0.03853970766067505,
+      0.017605066299438477,
+      0.0027096569538116455,
+      0.02246934175491333,
+      0.02104085683822632,
+      0.025094598531723022
+    ]
+  },
+  "trainable_parameters": 27885226,
+  "total_parameters": 27885226,
+  "model_size_mb": 106.37369537353516,
+  "training_time_seconds": 10.834202766418457,
+  "checkpoint": "results\\_tiny_residual_gradient_fix_smoke\\best_checkpoint.pth"
+}

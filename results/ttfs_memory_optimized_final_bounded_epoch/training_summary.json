@@ -1,0 +1,92 @@
+{
+  "experiment_name": "cifar10_baseline_pure_snn_ttfs_t5_seed42",
+  "status": "completed",
+  "dataset": "CIFAR-10",
+  "temporal_model_type": "DISCRETE_TIME_TTFS_SNN",
+  "time_steps": 2,
+  "seed": 42,
+  "residual_fusion": "earliest_spike_or",
+  "learnable_delay": true,
+  "force_positive_weights": false,
+  "best_epoch": 0,
+  "best_validation_accuracy": 9.375,
+  "test_accuracy": 6.25,
+  "test_loss": 2.3872288823127747,
+  "spikes_per_sample": 2280310.7375,
+  "synops_per_sample_estimate": 866944521.01875,
+  "threshold_mode": "learnable_channel",
+  "threshold_stats": {
+    "mean": 0.20036104321479797,
+    "min": 0.19904489815235138,
+    "max": 0.20159026980400085,
+    "gradient_mean": 0.18756013015459302,
+    "update_magnitude": 0.0004565317649394274,
+    "frozen": false
+  },
+  "readout_mode": "spike_integrator",
+  "batch_size": 8,
+  "amp_enabled": true,
+  "gradient_accumulation_steps": 1,
+  "cifar_stem": true,
+  "current_norm": true,
+  "track_first_spike": false,
+  "use_checkpointing": false,
+  "model_creation_memory": {
+    "allocated_gib": 0.10490036010742188,
+    "reserved_gib": 0.125,
+    "peak_allocated_gib": 0.10490036010742188,
+    "peak_reserved_gib": 0.125
+  },
+  "train_peak_allocated_gib": 1.803138256072998,
+  "train_peak_reserved_gib": 1.833984375,
+  "val_peak_allocated_gib": 0.7332367897033691,
+  "val_peak_reserved_gib": 1.833984375,
+  "global_spikes_per_neuron": 0.5198099800629887,
+  "global_sparsity": 0.48019001993701127,
+  "stage_spike_distribution": {
+    "stage_0": {
+      "spike_fraction_t0": 0.8092289606730144,
+      "spike_fraction_t1": 0.09735202789306639,
+      "silent_neuron_fraction": 0.09341901143391926,
+      "repeated_spike_ratio": 0.0
+    },
+    "stage_1": {
+      "spike_fraction_t0": 0.831208038330078,
+      "spike_fraction_t1": 0.028737131754557294,
+      "silent_neuron_fraction": 0.1400548299153646,
+      "repeated_spike_ratio": 0.0
+    },
+    "stage_2": {
+      "spike_fraction_t0": 0.8524027506510418,
+      "spike_fraction_t1": 0.014387766520182293,
+      "silent_neuron_fraction": 0.13320948282877604,
+      "repeated_spike_ratio": 0.0
+    },
+    "stage_3": {
+      "spike_fraction_t0": 0.8115234375,
+      "spike_fraction_t1": 0.025456746419270836,
+      "silent_neuron_fraction": 0.16301981608072919,
+      "repeated_spike_ratio": 0.0
+    }
+  },
+  "final_feature_diagnostics": {
+    "feature_std_across_batch": 0.004131713940296322,
+    "classwise_logit_std": [
+      0.015204829908907414,
+      0.014456269331276417,
+      0.018774730619043112,
+      0.017143823159858584,
+      0.01970270900055766,
+      0.024660804029554128,
+      0.016861743689514697,
+      0.016091136494651437,
+      0.016253200126811862,
+      0.017394784744828938
+    ]
+  },
+  "trainable_parameters": 27926410,
+  "total_parameters": 27926410,
+  "model_size_mb": 106.53079986572266,
+  "training_time_seconds": 39.27283763885498,
+  "checkpoint": "results\\ttfs_memory_optimized_final_bounded_epoch\\best_checkpoint.pth"
+}

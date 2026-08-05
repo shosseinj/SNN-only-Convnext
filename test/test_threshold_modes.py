@@ -31,7 +31,7 @@ def run_case(mode: str, images: torch.Tensor, labels: torch.Tensor) -> dict:
     set_threshold_trainable(model, True)
     before = threshold_values(model).clone()
     optimizer.zero_grad(set_to_none=True)
-    logits, stats = model(images, return_stats=True, return_layer_stats=False)
+    logits, stats = model(images, return_stats=True)
     loss = torch.nn.functional.cross_entropy(logits, labels)
     assert logits.shape == (images.shape[0], 10)
     assert torch.isfinite(logits).all() and torch.isfinite(loss)

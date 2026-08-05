@@ -10,7 +10,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, Subset, random_split
 from torchvision import datasets, transforms
 
-from models.discrete_ttfs_convnext import FirstSpikeNeuron, build_discrete_ttfs_convnext
+# from models.discrete_ttfs_convnext import FirstSpikeNeuron, build_discrete_ttfs_convnext
+from models.discrete_ttfs_convnext_design_b import FirstSpikeNeuron, build_discrete_ttfs_convnext
 from imagenet_init import load_torchvision_convnext_tiny
 from reproducibility import seed_everything, seed_worker
 from experiment_utils import atomic_json_dump, append_jsonl, count_parameters, model_size_mb, save_checkpoint
@@ -32,32 +33,47 @@ def parser():
     p.add_argument("--num_classes", type=int, default=10)
     p.add_argument("--time_steps", type=int, default=2)
     p.add_argument("--threshold", type=float, default=0.2)
-    p.add_argument("--threshold_mode", choices=["fixed", "learnable_layer", "learnable_channel"], default="fixed")
+    p.add_argument("--threshold_mode", choices=["fixed", "learnable_layer", "learnable_channel"], default="learnable_channel")
     p.add_argument("--threshold_min", type=float, default=0.05)
     p.add_argument("--threshold_max", type=float, default=0.8)
     p.add_argument("--threshold_freeze_epochs", type=int, default=3)
-    p.add_argument("--readout_mode", choices=["ttfs", "spike_integrator", "membrane", "hybrid", "soft_time"], default="spike_integrator")
-    p.add_argument("--soft_time_beta", type=float, default=10.0)
+    p.add_argument(
+        "--readout_mode",
+        choices=["ttfs", "spike_integrator"],
+        default="spike_integrator",
+    )
     p.add_argument("--learnable_delay", type=str2bool, default=True)
     p.add_argument("--residual", type=str2bool, default=True)
     p.add_argument("--init_delay", type=float, default=0.0)
     p.add_argument("--force_positive_weights", type=str2bool, default=False)
-    p.add_argument("--imagenet_pretrained", type=str2bool, default=True,
+    p.add_argument("--imagenet_pretrained", type=str2bool, default=False,
                    help="partially initialize Tiny from torchvision ImageNet-1K ConvNeXt-Tiny")
     p.add_argument("--imagenet_positive_transform", choices=["reject", "abs"], default="reject",
                    help="explicit handling of signed ImageNet conv weights when positivity is enabled")
-    p.add_argument("--batch_size", type=int, default=150)
+    p.add_argument("--batch_size", type=int, default=90)
     p.add_argument("--epochs", type=int, default=300)
-    p.add_argument("--lr", type=float, default=4e-4)
+    p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--min_lr", type=float, default=1e-5)
     p.add_argument("--weight_decay", type=float, default=0.05)
     p.add_argument("--label_smoothing", type=float, default=0.1)
     p.add_argument("--val_fraction", type=float, default=0.1)
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--num_workers", type=int, default=4)
+    p.add_argument("--num_workers", type=int, default=1)
     p.add_argument("--device", default="cuda")
-    p.add_argument("--amp", type=str2bool, default=False)
-    p.add_argument("--grad_clip", type=float, default=0.0)
+    p.add_argument("--amp", type=str2bool, default=True)
+    p.add_argument(
+        "--amp_init_scale", type=float, default=1.0,
+        help="initial CUDA GradScaler scale; conservative default for deep SNN backward graphs",
+    )
+    p.add_argument("--gradient_accumulation_steps", type=int, default=1)
+    p.add_argument(
+        "--grad_clip",
+        type=float,
+        default=5.0,
+        help="clip the global gradient norm before each optimizer step; 0 disables clipping",
+    )
+    p.add_argument("--detect_anomaly_batch", type=int, default=-1,
+                   help="zero-based training batch to trace with autograd anomaly detection")
     p.add_argument("--resume", default="")
     p.add_argument("--download", type=str2bool, default=False)
     p.add_argument("--dry_run", action="store_true")
@@ -67,6 +83,10 @@ def parser():
     p.add_argument("--train_subset_size", type=int, default=0)
     p.add_argument("--val_subset_size", type=int, default=0)
     p.add_argument("--synthetic_data", action="store_true", help="offline smoke test only")
+    p.add_argument("--cifar_stem", type=str2bool, default=True)
+    p.add_argument("--current_norm", type=str2bool, default=True)
+    p.add_argument("--track_first_spike", type=str2bool, default=False)
+    p.add_argument("--use_checkpointing", type=str2bool, default=False)
     return p
 
 
@@ -117,13 +137,35 @@ def automatic_output_dir(args) -> Path:
 
 
 def global_gradient_norm(parameters) -> float:
-    squared_norm = None
-    for parameter in parameters:
-        if parameter.grad is not None:
-            grad = parameter.grad.detach().float()
-            contribution = grad.square().sum()
-            squared_norm = contribution if squared_norm is None else squared_norm + contribution
-    return float(squared_norm.sqrt().item()) if squared_norm is not None else 0.0
+    norms = [
+        torch.linalg.vector_norm(parameter.grad.detach().float())
+        for parameter in parameters
+        if parameter.grad is not None
+    ]
+    return float(torch.linalg.vector_norm(torch.stack(norms)).item()) if norms else 0.0
+
+
+def nonfinite_gradient_names(model, limit: int = 8) -> list[str]:
+    names = []
+    for name, parameter in model.named_parameters():
+        if parameter.grad is not None and not torch.isfinite(parameter.grad).all():
+            names.append(name)
+            if len(names) >= limit:
+                break
+    return names
+
+
+def cuda_memory_snapshot(device) -> dict:
+    if device.type != "cuda":
+        return {}
+    torch.cuda.synchronize(device)
+    gib = float(1024 ** 3)
+    return {
+        "allocated_gib": torch.cuda.memory_allocated(device) / gib,
+        "reserved_gib": torch.cuda.memory_reserved(device) / gib,
+        "peak_allocated_gib": torch.cuda.max_memory_allocated(device) / gib,
+        "peak_reserved_gib": torch.cuda.max_memory_reserved(device) / gib,
+    }
 
 
 def regional_gradient_norms(model):
@@ -131,7 +173,7 @@ def regional_gradient_norms(model):
         "stem", "stage_0", "stage_1", "stage_2", "stage_3",
         "classifier", "thresholds", "delays",
     )}
-    classifier = model.hybrid_classifier if model.readout_mode == "hybrid" else model.classifier
+    classifier = model.classifier
     classifier_ids = {id(parameter) for parameter in classifier.parameters()}
     for name, parameter in model.named_parameters():
         if parameter.grad is None:
@@ -205,62 +247,129 @@ def _average_nested(values, count):
     return result
 
 
-def run_epoch(model, loader, criterion, device, optimizer=None, scaler=None, amp=False, max_batches=0, grad_clip=0.0):
+def run_epoch(
+    model, loader, criterion, device, optimizer=None, scaler=None, amp=False,
+    max_batches=0, grad_clip=0.0, gradient_accumulation_steps=1,
+    detect_anomaly_batch=-1,
+):
     training = optimizer is not None
+    if gradient_accumulation_steps < 1:
+        raise ValueError("gradient_accumulation_steps must be >= 1")
     model.train(training)
     total_loss = total_correct = total = 0
-    total_spikes = total_synops = 0.0
+    total_spikes = total_hidden_units = total_synops = 0.0
     total_grad_norm = grad_norm_steps = 0.0
     total_threshold_grad = threshold_grad_steps = 0.0
     total_classifier_grad_norm = 0.0
     diagnostic_batches = 0
     stage_spike_diagnostics = {}
-    stage_membrane_diagnostics = {}
     final_feature_diagnostics = {}
     regional_grad_totals = {name: 0.0 for name in (
         "stem", "stage_0", "stage_1", "stage_2", "stage_3",
         "classifier", "thresholds", "delays",
     )}
+    memory_checkpoints = {}
+    effective_batches = min(len(loader), max_batches) if max_batches else len(loader)
+    latest_grad_norm = None
     start = time.time()
     for i, (images, labels) in enumerate(loader):
         if max_batches and i >= max_batches: break
         images, labels = images.to(device), labels.to(device)
-        if training: optimizer.zero_grad(set_to_none=True)
-        with torch.autocast(device_type=device.type, enabled=amp and device.type == "cuda"):
-            logits, stats = model(images, return_stats=True, return_layer_stats=False)
+        tracing_this_batch = training and i == detect_anomaly_batch
+        diagnostic_handles = []
+        if tracing_this_batch:
+            torch.autograd.set_detect_anomaly(True, check_nan=True)
+            def diagnostic_hook(name):
+                def hook(_module, grad_input, grad_output):
+                    input_bad = any(
+                        tensor is not None and not torch.isfinite(tensor).all()
+                        for tensor in grad_input
+                    )
+                    output_bad = any(
+                        tensor is not None and not torch.isfinite(tensor).all()
+                        for tensor in grad_output
+                    )
+                    if input_bad or output_bad:
+                        print(json.dumps({
+                            "nonfinite_backward_module": name,
+                            "input_gradient_nonfinite": input_bad,
+                            "output_gradient_nonfinite": output_bad,
+                        }), flush=True)
+                return hook
+            for name, module in model.named_modules():
+                if isinstance(module, (nn.Conv2d, nn.GroupNorm, FirstSpikeNeuron)):
+                    diagnostic_handles.append(
+                        module.register_full_backward_hook(diagnostic_hook(name))
+                    )
+        accumulation_index = i % gradient_accumulation_steps
+        if training and accumulation_index == 0:
+            optimizer.zero_grad(set_to_none=True)
+        group_start = i - accumulation_index
+        group_size = min(gradient_accumulation_steps, effective_batches - group_start)
+        should_step = training and (
+            accumulation_index + 1 == group_size or i + 1 == effective_batches
+        )
+        with torch.autocast(
+            device_type=device.type,
+            dtype=torch.float16 if device.type == "cuda" else torch.bfloat16,
+            enabled=amp and device.type == "cuda",
+        ):
+            logits, stats = model(images, return_stats=True)
             loss = criterion(logits, labels)
+        if i == 0:
+            memory_checkpoints["first_forward"] = cuda_memory_snapshot(device)
         if not torch.isfinite(loss): raise FloatingPointError(f"non-finite loss at batch {i}: {loss.item()}")
         if training:
+            backward_loss = loss / group_size
             if scaler is not None and scaler.is_enabled():
-                scaler.scale(loss).backward()
-                scaler.unscale_(optimizer)
+                scaler.scale(backward_loss).backward()
+            else:
+                backward_loss.backward()
+            if i == 0:
+                memory_checkpoints["first_backward"] = cuda_memory_snapshot(device)
+
+            if should_step:
+                if scaler is not None and scaler.is_enabled():
+                    scaler.unscale_(optimizer)
                 grad_norm = global_gradient_norm(model.parameters())
+                latest_grad_norm = grad_norm
+                if not math.isfinite(grad_norm):
+                    bad_names = nonfinite_gradient_names(model)
+                    raise FloatingPointError(
+                        f"non-finite gradient norm at batch {i}: {grad_norm}; "
+                        f"first affected parameters: {bad_names or ['norm_overflow']}"
+                    )
+                total_grad_norm += grad_norm
+                grad_norm_steps += 1
+                threshold_grads = [p.grad.detach().abs().mean() for p in threshold_parameters(model) if p.grad is not None]
+                if threshold_grads:
+                    total_threshold_grad += float(torch.stack(threshold_grads).mean().item())
+                    threshold_grad_steps += 1
+                classifier = model.classifier
+                if classifier.weight.grad is not None:
+                    total_classifier_grad_norm += float(classifier.weight.grad.detach().float().norm().item())
+                for region, norm in regional_gradient_norms(model).items():
+                    regional_grad_totals[region] += norm
                 if grad_clip > 0:
                     nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-                scaler.step(optimizer); scaler.update()
-            else:
-                loss.backward()
-                grad_norm = global_gradient_norm(model.parameters())
-                if grad_clip > 0: nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-                optimizer.step()
-            total_grad_norm += grad_norm
-            grad_norm_steps += 1
-            threshold_grads = [p.grad.detach().abs().mean() for p in threshold_parameters(model) if p.grad is not None]
-            if threshold_grads:
-                total_threshold_grad += float(torch.stack(threshold_grads).mean().item())
-                threshold_grad_steps += 1
-            classifier = model.hybrid_classifier if model.readout_mode == "hybrid" else model.classifier
-            if classifier.weight.grad is not None:
-                total_classifier_grad_norm += float(classifier.weight.grad.detach().float().norm().item())
-            for region, norm in regional_gradient_norms(model).items():
-                regional_grad_totals[region] += norm
+                if scaler is not None and scaler.is_enabled():
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    optimizer.step()
+                if "first_optimizer_step" not in memory_checkpoints:
+                    memory_checkpoints["first_optimizer_step"] = cuda_memory_snapshot(device)
+            if tracing_this_batch:
+                for handle in diagnostic_handles:
+                    handle.remove()
+                torch.autograd.set_detect_anomaly(False)
         n = labels.numel()
         total += n; total_loss += loss.item() * n
         total_correct += (logits.argmax(1) == labels).sum().item()
-        total_spikes += float(stats["total_spikes"])
+        total_spikes += float(stats["global_hidden_spikes"])
+        total_hidden_units += float(stats["global_hidden_units"])
         total_synops += float(stats["total_synops_estimate"])
         stage_spike_diagnostics = _accumulate_nested(stage_spike_diagnostics, stats["stage_spike_distribution"])
-        stage_membrane_diagnostics = _accumulate_nested(stage_membrane_diagnostics, stats["stage_membrane_diagnostics"])
         final_feature_diagnostics = _accumulate_nested(final_feature_diagnostics, stats["final_feature_diagnostics"])
         diagnostic_batches += 1
         if (i + 1) % 10 == 0:
@@ -271,21 +380,23 @@ def run_epoch(model, loader, criterion, device, optimizer=None, scaler=None, amp
                 "accuracy": 100.0 * total_correct / max(total, 1),
             }
             if training:
-                iteration_log["grad_norm"] = grad_norm
+                iteration_log["grad_norm"] = latest_grad_norm
             print(json.dumps(iteration_log), flush=True)
     return {
         "loss": total_loss / max(total,1), "accuracy": 100.0 * total_correct / max(total,1),
         "samples": total, "spikes_per_sample": total_spikes / max(total,1),
+        "global_spikes_per_neuron": total_spikes / max(total_hidden_units, 1.0),
+        "global_sparsity": 1.0 - total_spikes / max(total_hidden_units, 1.0),
         "synops_per_sample_estimate": total_synops / max(total,1), "seconds": time.time()-start,
         "grad_norm": total_grad_norm / max(grad_norm_steps, 1) if training else None,
         "threshold_gradient_mean": total_threshold_grad / max(threshold_grad_steps, 1) if threshold_grad_steps else 0.0,
         "classifier_weight_gradient_norm": total_classifier_grad_norm / max(grad_norm_steps, 1) if training else None,
         "stage_spike_distribution": _average_nested(stage_spike_diagnostics, diagnostic_batches),
-        "stage_membrane_diagnostics": _average_nested(stage_membrane_diagnostics, diagnostic_batches),
         "final_feature_diagnostics": _average_nested(final_feature_diagnostics, diagnostic_batches),
         "regional_gradient_norms": {
             region: value / max(grad_norm_steps, 1) for region, value in regional_grad_totals.items()
         } if training else None,
+        "memory_checkpoints": memory_checkpoints,
     }
 
 
@@ -309,7 +420,9 @@ def main(args):
         time_steps=args.time_steps, threshold=args.threshold, force_positive_weights=args.force_positive_weights,
         learnable_delay=args.learnable_delay, init_delay=args.init_delay, residual=args.residual,
         threshold_mode=args.threshold_mode, threshold_min=args.threshold_min, threshold_max=args.threshold_max,
-        readout_mode=args.readout_mode, soft_time_beta=args.soft_time_beta)
+        readout_mode=args.readout_mode, cifar_stem=args.cifar_stem,
+        current_norm=args.current_norm, track_first_spike=args.track_first_spike,
+        use_checkpointing=args.use_checkpointing)
     if args.imagenet_pretrained:
         imagenet_report = load_torchvision_convnext_tiny(
             model, positive_transform=args.imagenet_positive_transform
@@ -322,6 +435,9 @@ def main(args):
             "report": str(out/"imagenet_initialization_report.json"),
         }, indent=2))
     model = model.to(device)
+    model_creation_memory = cuda_memory_snapshot(device)
+    if model_creation_memory:
+        print(json.dumps({"cuda_memory_after_model_creation": model_creation_memory}))
     trainable, total_params = count_parameters(model)
     print(f"Model type: {model.temporal_model_type}; T={args.time_steps}; params={total_params:,}; device={device}")
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -332,7 +448,11 @@ def main(args):
         raise RuntimeError("each learnable threshold parameter must appear in the optimizer exactly once")
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(args.epochs,1), eta_min=args.min_lr)
     criterion = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
-    scaler = torch.amp.GradScaler("cuda", enabled=args.amp and device.type == "cuda")
+    scaler = torch.amp.GradScaler(
+        "cuda",
+        enabled=args.amp and device.type == "cuda",
+        init_scale=args.amp_init_scale,
+    )
     start_epoch=0; best=-math.inf
     if args.resume:
         ckpt=torch.load(args.resume,map_location="cpu",weights_only=False); model.load_state_dict(ckpt["model"])
@@ -344,7 +464,16 @@ def main(args):
     for epoch in range(start_epoch, epochs):
         set_threshold_trainable(model, epoch >= args.threshold_freeze_epochs)
         thresholds_before = threshold_values(model)
-        tr=run_epoch(model,train_loader,criterion,device,optimizer,scaler,args.amp,args.max_train_batches, args.grad_clip)
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(device)
+        tr=run_epoch(
+            model, train_loader, criterion, device, optimizer, scaler, args.amp,
+            args.max_train_batches, args.grad_clip, args.gradient_accumulation_steps,
+            args.detect_anomaly_batch,
+        )
+        train_memory = cuda_memory_snapshot(device)
+        tr["peak_allocated_gib"] = train_memory.get("peak_allocated_gib", 0.0)
+        tr["peak_reserved_gib"] = train_memory.get("peak_reserved_gib", 0.0)
         thresholds_after = threshold_values(model)
         last_threshold_stats = {
             "mean": float(thresholds_after.mean().item()),
@@ -354,7 +483,13 @@ def main(args):
             "update_magnitude": float((thresholds_after - thresholds_before).abs().mean().item()),
             "frozen": epoch < args.threshold_freeze_epochs,
         }
-        with torch.no_grad(): va=run_epoch(model,val_loader,criterion,device,max_batches=args.max_val_batches)
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(device)
+        with torch.inference_mode():
+            va=run_epoch(model,val_loader,criterion,device,max_batches=args.max_val_batches)
+        val_memory = cuda_memory_snapshot(device)
+        va["peak_allocated_gib"] = val_memory.get("peak_allocated_gib", 0.0)
+        va["peak_reserved_gib"] = val_memory.get("peak_reserved_gib", 0.0)
         row={"epoch":epoch,"learning_rate":optimizer.param_groups[0]["lr"],"threshold_stats":last_threshold_stats,**{f"train_{k}":v for k,v in tr.items()},**{f"val_{k}":v for k,v in va.items()}}
         append_jsonl(row,out/"train_log.jsonl"); print(json.dumps(row))
         save_checkpoint(out/"last_checkpoint.pth",model,optimizer,scheduler,epoch,best,config)
@@ -362,16 +497,27 @@ def main(args):
             best=va["accuracy"]; save_checkpoint(out/"best_checkpoint.pth",model,optimizer,scheduler,epoch,best,config)
         scheduler.step()
     best_ckpt=torch.load(out/"best_checkpoint.pth",map_location=device,weights_only=False); model.load_state_dict(best_ckpt["model"])
-    with torch.no_grad(): test=run_epoch(model,test_loader,criterion,device,max_batches=args.max_test_batches)
+    with torch.inference_mode():
+        test=run_epoch(model,test_loader,criterion,device,max_batches=args.max_test_batches)
     summary={"experiment_name":args.experiment_name,"status":"completed","dataset":"CIFAR-10" if not args.synthetic_data else "FakeData",
       "temporal_model_type":model.temporal_model_type,"time_steps":args.time_steps,"seed":args.seed,
       "residual_fusion":"earliest_spike_or" if args.residual else "disabled","learnable_delay":args.learnable_delay,"force_positive_weights":args.force_positive_weights,
       "best_epoch":best_ckpt["epoch"],"best_validation_accuracy":best,"test_accuracy":test["accuracy"],"test_loss":test["loss"],
       "spikes_per_sample":test["spikes_per_sample"],"synops_per_sample_estimate":test["synops_per_sample_estimate"],
       "threshold_mode":args.threshold_mode,"threshold_stats":last_threshold_stats,
-      "readout_mode":args.readout_mode,"soft_time_beta":args.soft_time_beta,
+      "readout_mode":args.readout_mode,
+      "batch_size":args.batch_size,"amp_enabled":bool(args.amp and device.type == "cuda"),
+      "gradient_accumulation_steps":args.gradient_accumulation_steps,
+      "cifar_stem":args.cifar_stem,"current_norm":args.current_norm,
+      "track_first_spike":args.track_first_spike,"use_checkpointing":args.use_checkpointing,
+      "model_creation_memory":model_creation_memory,
+      "train_peak_allocated_gib":tr["peak_allocated_gib"],
+      "train_peak_reserved_gib":tr["peak_reserved_gib"],
+      "val_peak_allocated_gib":va["peak_allocated_gib"],
+      "val_peak_reserved_gib":va["peak_reserved_gib"],
+      "global_spikes_per_neuron":test["global_spikes_per_neuron"],
+      "global_sparsity":test["global_sparsity"],
       "stage_spike_distribution":test["stage_spike_distribution"],
-      "stage_membrane_diagnostics":test["stage_membrane_diagnostics"],
       "final_feature_diagnostics":test["final_feature_diagnostics"],
       "trainable_parameters":trainable,"total_parameters":total_params,"model_size_mb":model_size_mb(model),
       "training_time_seconds":time.time()-started,"checkpoint":str(out/"best_checkpoint.pth")}

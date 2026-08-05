@@ -32,17 +32,18 @@ def main() -> None:
     passing_norms = None
     for _step in range(20):
         optimizer.zero_grad(set_to_none=True)
-        logits, stats = model(images, return_stats=True, return_layer_stats=False)
+        logits, stats = model(images, return_stats=True)
         loss = torch.nn.functional.cross_entropy(logits, labels)
         assert logits.shape == (16, 10)
         assert torch.isfinite(logits).all() and torch.isfinite(loss)
         assert stats["classifier_input_source"] == "weighted_final_stage_hard_spikes_only"
-        # At native 32x32, the final grid is 1x1. With T=2 and one hard
-        # first-spike event, every classifier input must be exactly 0, .5, or 1.
+        # CIFAR stem preserves 32x32 before three 2x downsamples, so the final
+        # grid is 4x4. Weighted hard events therefore lie on a 1/(T*4*4) grid.
         feature = captured["feature"]
         assert feature.shape == (16, 768)
         assert torch.all((feature >= 0) & (feature <= 1))
-        assert torch.allclose(feature * 2.0, (feature * 2.0).round())
+        quantum = model.time_steps * 4 * 4
+        assert torch.allclose(feature * quantum, (feature * quantum).round())
         assert all(
             stage["repeated_spike_ratio"] <= 1e-7
             for stage in stats["stage_spike_distribution"].values()

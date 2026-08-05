@@ -3,7 +3,7 @@
 Key properties
 --------------
 - Explicit simulation over T discrete time bins.
-- Every hidden affine operation is followed by a first-spike-only neuron.
+- Design B keeps the depthwise internal path analog; TTFS replaces GELU and converts each block output back to spikes.
 - Hidden synapses use bias=False, preventing bias accumulation at every timestep.
 - Signed synapses use fan-in-aware initialization.
 - Optional current normalization is applied before membrane integration.
@@ -420,12 +420,26 @@ def hard_or_ste(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     averaging both paths instead made early-stage gradients vanish.
     """
     hard = torch.clamp(a + b, 0.0, 1.0)
-    soft = b + 0.25 * a
+    soft = b + 0.75 * a
     return soft + (hard - soft).detach()
 
 
 class SpikingConvNeXtBlock(nn.Module):
-    """Depthwise -> pointwise expansion -> pointwise projection, all spiking."""
+    """ConvNeXt-faithful Design B block.
+
+    Structure:
+        spike input
+        -> depthwise convolution (analog current)
+        -> current normalization
+        -> pointwise expansion
+        -> first-spike neuron (replaces GELU)
+        -> pointwise projection
+        -> first-spike block-output neuron
+        -> earliest-event residual fusion
+
+    Unlike Design A, no neuron is inserted directly after the depthwise
+    convolution. The block still has spike input and spike output.
+    """
 
     def __init__(
         self,
@@ -450,6 +464,8 @@ class SpikingConvNeXtBlock(nn.Module):
             threshold_max=threshold_max,
         )
 
+        # The depthwise convolution remains an ordinary affine/synaptic
+        # operation. There is intentionally no spiking neuron after it.
         self.dw = EffectiveConv2d(
             dim,
             dim,
@@ -460,15 +476,8 @@ class SpikingConvNeXtBlock(nn.Module):
             force_positive_weights=force_positive_weights,
         )
         self.dw_norm = ChannelCurrentNorm(dim, current_norm, force_fp32_norm)
-        self.dw_neuron = FirstSpikeNeuron(
-            dim,
-            time_steps,
-            threshold,
-            learnable_delay,
-            init_delay,
-            **neuron_kwargs,
-        )
 
+        # ConvNeXt expansion layer. Its first-spike neuron replaces GELU.
         self.pw1 = EffectiveConv2d(
             dim,
             4 * dim,
@@ -478,7 +487,7 @@ class SpikingConvNeXtBlock(nn.Module):
             force_fp32=force_fp32_norm,
         )
         self.pw1_norm = ChannelCurrentNorm(4 * dim, current_norm, force_fp32_norm)
-        self.pw1_neuron = FirstSpikeNeuron(
+        self.activation_neuron = FirstSpikeNeuron(
             4 * dim,
             time_steps,
             threshold,
@@ -487,6 +496,8 @@ class SpikingConvNeXtBlock(nn.Module):
             **neuron_kwargs,
         )
 
+        # Projection back to dim, followed by a first-spike output neuron so
+        # every block still communicates spikes to the next block.
         self.pw2 = EffectiveConv2d(
             4 * dim,
             dim,
@@ -495,7 +506,7 @@ class SpikingConvNeXtBlock(nn.Module):
             force_positive_weights=force_positive_weights,
         )
         self.pw2_norm = ChannelCurrentNorm(dim, current_norm, force_fp32_norm)
-        self.pw2_neuron = FirstSpikeNeuron(
+        self.output_neuron = FirstSpikeNeuron(
             dim,
             time_steps,
             threshold,
@@ -503,6 +514,10 @@ class SpikingConvNeXtBlock(nn.Module):
             init_delay,
             **neuron_kwargs,
         )
+
+        # Backward-compatible attribute names for utilities that inspect them.
+        self.pw1_neuron = self.activation_neuron
+        self.pw2_neuron = self.output_neuron
 
         self.time_steps = int(time_steps)
         self.residual = bool(residual)
@@ -517,21 +532,33 @@ class SpikingConvNeXtBlock(nn.Module):
         batch, channels, height, width = input_shape
         main_shape = (batch, channels, height, width)
         expanded_shape = (batch, 4 * channels, height, width)
-        state_dw = self.dw_neuron.init_state(main_shape, device, dtype, track_first_spike)
-        state_pw1 = self.pw1_neuron.init_state(expanded_shape, device, dtype, track_first_spike)
-        state_pw2 = self.pw2_neuron.init_state(main_shape, device, dtype, track_first_spike)
 
-        output_has_spiked = torch.zeros(main_shape, device=device, dtype=torch.bool)
+        state_activation = self.activation_neuron.init_state(
+            expanded_shape, device, dtype, track_first_spike
+        )
+        state_output = self.output_neuron.init_state(
+            main_shape, device, dtype, track_first_spike
+        )
+
+        # Separate block-output mask is needed because the residual branch can
+        # fire earlier than the transformed branch.
+        output_has_spiked = torch.zeros(
+            main_shape, device=device, dtype=torch.bool
+        )
         output_first_spike = (
-            torch.full(main_shape, float(self.time_steps), device=device, dtype=dtype)
+            torch.full(
+                main_shape,
+                float(self.time_steps),
+                device=device,
+                dtype=dtype,
+            )
             if track_first_spike
             else None
         )
 
         return [
-            state_dw,
-            state_pw1,
-            state_pw2,
+            state_activation,
+            state_output,
             output_has_spiked,
             output_first_spike,
         ]
@@ -542,49 +569,58 @@ class SpikingConvNeXtBlock(nn.Module):
         states,
         step: int,
     ):
-        state_dw, state_pw1, state_pw2, out_has_spiked, out_first = states
+        (
+            state_activation,
+            state_output,
+            out_has_spiked,
+            out_first,
+        ) = states
 
-        current_dw = self.dw_norm(self.dw(x_spike))
-        z_dw, state_dw = self.dw_neuron.forward_step(
-            current_dw,
-            state_dw,
-            step,
+        # No spike threshold here: this is the analog internal ConvNeXt path.
+        dw_current = self.dw_norm(self.dw(x_spike))
+
+        # The first-spike neuron replaces ConvNeXt's GELU activation.
+        pw1_current = self.pw1_norm(self.pw1(dw_current))
+        activation_spike, state_activation = (
+            self.activation_neuron.forward_step(
+                pw1_current,
+                state_activation,
+                step,
+            )
         )
 
-        current_pw1 = self.pw1_norm(self.pw1(z_dw))
-        z_pw1, state_pw1 = self.pw1_neuron.forward_step(
-            current_pw1,
-            state_pw1,
-            step,
-        )
-
-        current_pw2 = self.pw2_norm(self.pw2(z_pw1))
-        main, state_pw2 = self.pw2_neuron.forward_step(
-            current_pw2,
-            state_pw2,
+        # Projection followed by a spike conversion at block output.
+        pw2_current = self.pw2_norm(self.pw2(activation_spike))
+        main_spike, state_output = self.output_neuron.forward_step(
+            pw2_current,
+            state_output,
             step,
         )
 
         if self.residual:
-            # Event-space implementation of earliest-spike fusion.
-            fused_event = hard_or_ste(main, x_spike)
-            if out_first is not None and state_pw2.first_spike is not None:
-                no_spike = torch.full_like(out_first, float(self.time_steps))
+            # Hard forward is binary OR. With first-spike-only masking this is
+            # equivalent to selecting the earlier main/residual event.
+            fused_event = hard_or_ste(main_spike, x_spike)
+
+            if out_first is not None and state_output.first_spike is not None:
+                no_spike = torch.full_like(
+                    out_first, float(self.time_steps)
+                )
                 residual_first_now = torch.where(
                     x_spike.detach().bool(),
                     torch.full_like(out_first, float(step)),
                     no_spike,
                 )
                 candidate_first = torch.minimum(
-                    state_pw2.first_spike, residual_first_now
+                    state_output.first_spike,
+                    residual_first_now,
                 )
             else:
                 candidate_first = None
         else:
-            fused_event = main
-            candidate_first = state_pw2.first_spike
+            fused_event = main_spike
+            candidate_first = state_output.first_spike
 
-        # Enforce one output event per neuron.
         active = (~out_has_spiked).to(fused_event.dtype)
         out = fused_event * active
         newly = out.detach().bool() & (~out_has_spiked)
@@ -599,16 +635,16 @@ class SpikingConvNeXtBlock(nn.Module):
         return (
             out,
             [
-                state_dw,
-                state_pw1,
-                state_pw2,
+                state_activation,
+                state_output,
                 out_has_spiked | newly,
                 out_first,
             ],
             {
-                "dw": z_dw,
-                "pw1": z_pw1,
-                "main": main,
+                # dw_current is analog and must not be counted as spikes.
+                "dw_current": dw_current,
+                "pw1_spike": activation_spike,
+                "main": main_spike,
             },
         )
 
@@ -618,7 +654,7 @@ class SpikingConvNeXtBlock(nn.Module):
 # ---------------------------------------------------------------------------
 
 class DiscreteTTFSConvNeXt(nn.Module):
-    """Pure discrete-time TTFS ConvNeXt with non-spiking output integrator."""
+    """Design-B discrete-time TTFS ConvNeXt with non-spiking output integrator."""
 
     def __init__(
         self,
@@ -657,7 +693,8 @@ class DiscreteTTFSConvNeXt(nn.Module):
 
         self.time_steps = int(time_steps)
         self.num_classes = int(num_classes)
-        self.temporal_model_type = "DISCRETE_TIME_TTFS_SNN"
+        self.temporal_model_type = "DISCRETE_TIME_TTFS_SNN_DESIGN_B"
+        self.block_design = "B_convnext_faithful"
         self.maximum_spikes_per_neuron = 1
         self.readout_mode = readout_mode
         self.soft_time_beta = float(soft_time_beta)
@@ -949,23 +986,22 @@ class DiscreteTTFSConvNeXt(nn.Module):
                     )
 
                     if return_stats:
-                        # Exact event-input SynOps for each synapse.
+                        # Design B:
+                        # - dw consumes spikes and can be estimated as SynOps.
+                        # - pw1 consumes analog depthwise current, so it is not
+                        #   included in spike-driven SynOps.
+                        # - pw2 consumes TTFS activation spikes.
                         total_synops += self._synops(
                             block.dw,
                             block_input,
                         )
                         total_synops += self._synops(
-                            block.pw1,
-                            internal["dw"],
-                        )
-                        total_synops += self._synops(
                             block.pw2,
-                            internal["pw1"],
+                            internal["pw1_spike"],
                         )
 
                         populations = {
-                            "dw": internal["dw"],
-                            "pw1": internal["pw1"],
+                            "activation": internal["pw1_spike"],
                             "main": internal["main"],
                         }
                         for population_name, population in populations.items():
@@ -1022,7 +1058,8 @@ class DiscreteTTFSConvNeXt(nn.Module):
             return logits
 
         # Synaptic-neuron sparsity counts each distinct neuron population once:
-        # downsample, depthwise, pw1, and pw2/main. Residual block outputs are
+        # downsample, TTFS activation, and pw2/main. The depthwise path is analog
+        # in Design B and is therefore excluded. Residual block outputs are
         # reported separately because they represent the same channel/spatial
         # population as pw2 and would otherwise double-count the denominator.
         hidden_spikes = sum(
