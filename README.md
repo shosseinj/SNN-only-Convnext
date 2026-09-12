@@ -49,3 +49,19 @@ Experiment configuration, model size, number of timesteps, thresholds, delay set
 ## Upstream Attribution
 
 The training utilities and ConvNeXt baseline files retain code and copyright notices from Meta's [ConvNeXt](https://github.com/facebookresearch/ConvNeXt) implementation. The discrete TTFS model and related experiments extend that baseline; this repository is not an original implementation of the ConvNeXt backbone.
+
+
+## Installation
+
+The repository does not contain a pinned dependency file. Create an environment with a PyTorch build suitable for the target hardware, then install the training dependencies used by the scripts:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install torch torchvision timm numpy
+python trainer.py --help
+```
+
+## Working with the Repository
+
+Use `trainer.py` for the discrete TTFS path and `trainer_ann_convnext_relu.py` for the ANN reference. Start with the synthetic smoke test above before configuring CIFAR data or long runs. Evaluation utilities write metrics and computational proxies to the selected output directory; keep the configuration and seed with every reported result. Additional report tooling is located at `test/reporter.py`.
